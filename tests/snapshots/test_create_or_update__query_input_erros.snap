@@ -1,5 +1,0 @@
----
-source: tests/test_create_or_update.rs
-expression: no_table_name_err.to_string()
----
-The table name cannot be an empty string

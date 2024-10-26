@@ -1,0 +1,5 @@
+---
+source: tests/test_query_input_errors.rs
+expression: delete_error.to_string()
+---
+The where clause cannot be an empty string, if you don't want to use a where clause, specify where_input as None

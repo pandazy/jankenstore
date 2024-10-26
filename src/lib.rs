@@ -22,11 +22,26 @@ fn verify_table_name(table_name: &str) -> Result<()> {
 fn verify_where_clause(where_clause: &str) -> Result<()> {
     if where_clause.trim().is_empty() {
         return Err(anyhow!(
-            "The where clause cannot be an empty string, 
-        if you don't want to use a where clause, specify where_input as None"
+            "The where clause cannot be an empty string, if you don't want to use a where clause, specify where_input as None"
         ));
     }
     Ok(())
+}
+
+fn standardize_where_items(
+    where_input: Option<(&str, &[types::Value])>,
+    link_word: &str,
+) -> Result<(String, Vec<types::Value>)> {
+    match where_input {
+        Some((where_clause, where_params)) => {
+            verify_where_clause(where_clause)?;
+            Ok((
+                format!("{} {}", link_word, where_clause),
+                where_params.to_vec(),
+            ))
+        }
+        None => Ok(("".to_string(), vec![])),
+    }
 }
 
 ///
@@ -45,15 +60,9 @@ pub fn fetch_one(
     verify_table_name(table_name)?;
     let (pk_name, pk_value) = pk;
     let sql = format!("SELECT * FROM {} WHERE {} = ?", table_name, pk_name);
-    let mut params = vec![types::Value::Text(pk_value.to_string())];
-    let sql = match where_input {
-        Some((where_clause, where_params)) => {
-            verify_where_clause(where_clause)?;
-            params.extend(where_params.iter().cloned());
-            format!("{} and {}", sql, where_clause)
-        }
-        None => sql,
-    };
+    let (where_clause, where_params) = standardize_where_items(where_input, "AND")?;
+    let params = [vec![types::Value::Text(pk_value.to_string())], where_params].concat();
+    let sql = format!("{} {}", sql, where_clause);
     let mut stmt = conn.prepare(&sql)?;
     let mut rows = stmt.query(params_from_iter(&params))?;
     let row_op = rows.next()?;
@@ -91,17 +100,10 @@ pub fn fetch_all(
         display_fields.join(", "),
         table_name
     );
-    let mut params: Vec<types::Value> = vec![];
-    let sql = match where_input {
-        Some((where_clause, where_params)) => {
-            verify_where_clause(where_clause)?;
-            params.extend(where_params.iter().cloned());
-            format!("{} WHERE {}", sql, where_clause)
-        }
-        None => sql,
-    };
+    let (where_clause, where_params) = standardize_where_items(where_input, "WHERE")?;
+    let sql = format!("{} {}", sql, where_clause);
     let mut stmt = conn.prepare(&sql)?;
-    let mut rows = stmt.query(params_from_iter(&params))?;
+    let mut rows = stmt.query(params_from_iter(&where_params))?;
     let mut result = Vec::new();
     while let Some(row) = rows.next()? {
         result.push(row_to_map(row)?);
@@ -120,20 +122,20 @@ pub fn hard_del(
     conn: &Connection,
     table_name: &str,
     pk: (&str, &str),
-    where_input: Option<(&str, Vec<types::Value>)>,
+    where_input: Option<(&str, &[types::Value])>,
 ) -> Result<()> {
     verify_table_name(table_name)?;
     let (pk_name, pk_value) = pk;
-    let mut params = vec![types::Value::Text(pk_value.to_string())];
-    let mut sql = format!("DELETE FROM {} WHERE {} = ?", table_name, pk_name);
-    sql = match where_input {
-        Some((where_clause, where_params)) => {
-            verify_where_clause(where_clause)?;
-            params.extend(where_params.clone());
-            format!("{} and {}", sql, where_clause)
-        }
-        None => sql,
-    };
+    let (where_clause, where_params) = standardize_where_items(where_input, "AND")?;
+    let params = [
+        vec![types::Value::Text(pk_value.to_string())],
+        where_params.to_vec(),
+    ]
+    .concat();
+    let sql = format!(
+        "DELETE FROM {} WHERE {} = ? {}",
+        table_name, pk_name, where_clause
+    );
     let mut stmt = conn.prepare(&sql)?;
     stmt.execute(params_from_iter(&params))?;
     Ok(())
@@ -211,7 +213,7 @@ impl UnitResource {
         if input.keys().len() == 0 {
             return Err(anyhow!(
                 "The input for the operation of {} has no items",
-                self.name
+                self.get_name()
             ));
         }
         let trespasser_option = input
@@ -219,8 +221,8 @@ impl UnitResource {
             .find(|key| !self.fields.contains(&key.to_string()));
         if let Some(trespasser) = trespasser_option {
             return Err(anyhow!(
-                "The input for the operation of {} has a key '{}' that is not allowed",
-                self.name,
+                "The input for the operation of table '{}' has a key '{}' that is not allowed",
+                self.get_name(),
                 trespasser
             ));
         }
@@ -354,32 +356,29 @@ impl UnitResource {
         conn: &Connection,
         pk_value: &str,
         input: &HashMap<String, types::Value>,
-        where_input: Option<(&str, Vec<types::Value>)>,
+        where_input: Option<(&str, &[types::Value])>,
     ) -> Result<()> {
         self.verify_op_required(input, false)?;
-        let mut params = vec![];
         let mut set_clause = vec![];
         let mut set_params = vec![];
         for (key, value) in input {
             set_clause.push(format!("{} = ?", key));
             set_params.push(value.clone());
         }
-        params.extend(set_params);
-        params.push(types::Value::Text(pk_value.to_string()));
-        let mut sql = format!(
-            "UPDATE {} SET {} where {}=?",
+        let (where_clause, where_params) = standardize_where_items(where_input, "AND")?;
+        let params = [
+            set_params,
+            vec![types::Value::Text(pk_value.to_string())],
+            where_params,
+        ]
+        .concat();
+        let sql = format!(
+            "UPDATE {} SET {} where {}=? {}",
             self.name,
             set_clause.join(", "),
-            self.pk_name
+            self.pk_name,
+            where_clause
         );
-        sql = match where_input {
-            Some((where_clause, where_params)) => {
-                verify_where_clause(where_clause)?;
-                params.extend(where_params.clone());
-                format!("{} and {}", sql, where_clause)
-            }
-            None => sql,
-        };
         let mut stmt = conn.prepare(&sql)?;
         stmt.execute(params_from_iter(&params))?;
         Ok(())
@@ -397,7 +396,7 @@ impl UnitResource {
         &self,
         conn: &Connection,
         pk_value: &str,
-        where_input: Option<(&str, Vec<types::Value>)>,
+        where_input: Option<(&str, &[types::Value])>,
     ) -> Result<()> {
         hard_del(conn, &self.name, (&self.pk_name, pk_value), where_input)
     }
