@@ -22,5 +22,13 @@ jobs:
       run: cargo install cargo-tarpaulin
     - name: Build
       run: cargo build --verbose
-    - name: Run coverage
-      run: cargo tarpaulin --verbose
+    - name: Test
+      run: cargo test
+    - name: Enforce Coverage
+      run: |
+        COVERAGE=$(cargo tarpaulin --out Xml | grep '\<coverage\>' | sed -e 's/.*lines-covered="\(.*\)".*/\1/')
+        MIN_COVERAGE=90
+        if [ $(echo "$COVERAGE < $MIN_COVERAGE" | bc -l) -eq 1 ]; then
+          echo "Coverage is below $MIN_COVERAGE%. Current coverage: $COVERAGE%"
+          exit 1
+        fi
