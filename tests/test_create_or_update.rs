@@ -1,5 +1,6 @@
 use jankenstore::UnitResource;
 
+use insta::assert_snapshot;
 use anyhow::Result;
 use rusqlite::{types, Connection};
 use std::collections::HashMap;
@@ -81,6 +82,52 @@ fn test_create_or_update_unit_resource() -> Result<()> {
         types::Value::Integer(count) => assert_eq!(count, &6),
         _ => panic!("Unexpected value"),
     }
+
+    Ok(())
+}
+
+#[test]
+fn test_query_input_erros() -> Result<()> {
+    let conn = Connection::open_in_memory()?;
+    conn.execute(
+        "CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT NOT NULL, count INTEGER DEFAULT 2)",
+        [],
+    )?;
+    let resource = UnitResource::new(
+        "test",
+        "id",
+        &["name", "id", "count"],
+        &["name"],
+        &[("name", types::Value::Text("".to_string()))],
+    );
+
+    let input = HashMap::from([
+        ("id".to_string(), types::Value::Integer(1)),
+        ("name".to_string(), types::Value::Text("test".to_string())),
+    ]);
+    resource.insert(&conn, &input)?;
+
+    let input = HashMap::from([
+        ("id".to_string(), types::Value::Integer(2)),
+        ("name".to_string(), types::Value::Text("test2".to_string())),
+        ("count".to_string(), types::Value::Integer(6)),
+    ]);
+    resource.insert(&conn, &input)?;
+
+    let input = HashMap::from([
+        ("id".to_string(), types::Value::Integer(3)),
+        ("name".to_string(), types::Value::Text("test3".to_string())),
+    ]);
+    resource.insert(&conn, &input)?;
+
+    let query = resource.fetch_all(&conn, false, None, None)?;
+    assert_eq!(query.len(), 3);
+
+    let err = resource
+        .fetch_one(&conn, "2", Some(("", &[])))
+        .err()
+        .unwrap();
+    assert_snapshot!(err.to_string());
 
     Ok(())
 }

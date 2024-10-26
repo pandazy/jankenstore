@@ -13,3 +13,6 @@ categories = ["sqlite-database-helper"]
 [dependencies]
 anyhow = "1.0.*"
 rusqlite = "0.32.*"
+
+[dev-dependencies]
+insta = "1.40.*"

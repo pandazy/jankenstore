@@ -12,6 +12,23 @@ fn row_to_map(row: &Row) -> Result<HashMap<String, types::Value>> {
     Ok(map)
 }
 
+fn verify_table_name(table_name: &str) -> Result<()> {
+    if table_name.is_empty() {
+        return Err(anyhow!("The table name cannot be an empty string"));
+    }
+    Ok(())
+}
+
+fn verify_where_clause(where_clause: &str) -> Result<()> {
+    if where_clause.trim().is_empty() {
+        return Err(anyhow!(
+            "The where clause cannot be an empty string, 
+        if you don't want to use a where clause, specify where_input as None"
+        ));
+    }
+    Ok(())
+}
+
 ///
 /// fetch one record from the table
 /// # Arguments
@@ -25,17 +42,13 @@ pub fn fetch_one(
     pk: (&str, &str),
     where_input: Option<(&str, &[types::Value])>,
 ) -> Result<Option<HashMap<String, types::Value>>> {
+    verify_table_name(table_name)?;
     let (pk_name, pk_value) = pk;
     let sql = format!("SELECT * FROM {} WHERE {} = ?", table_name, pk_name);
     let mut params = vec![types::Value::Text(pk_value.to_string())];
     let sql = match where_input {
         Some((where_clause, where_params)) => {
-            if where_params.is_empty() {
-                return Err(anyhow!(
-                    "The where clause for the table {} cannot be an empty string",
-                    table_name
-                ));
-            }
+            verify_where_clause(where_clause)?;
             params.extend(where_params.iter().cloned());
             format!("{} and {}", sql, where_clause)
         }
@@ -68,25 +81,25 @@ pub fn fetch_all(
     display_fields: Option<&[&str]>,
     where_input: Option<(&str, &[types::Value])>,
 ) -> Result<Vec<HashMap<String, types::Value>>> {
+    verify_table_name(table_name)?;
     let default_fields = vec!["*"];
     let display_fields = display_fields.unwrap_or_else(|| &default_fields);
     let distinct_word = if is_distinct { "DISTINCT" } else { "" };
-    let mut sql = format!(
+    let sql = format!(
         "SELECT {} {} FROM {}",
         distinct_word,
         display_fields.join(", "),
         table_name
     );
     let mut params: Vec<types::Value> = vec![];
-    if let Some(where_data) = where_input {
-        let (where_clause, where_params) = where_data;
-        params.extend(where_params.iter().cloned());
-        sql = if !where_clause.is_empty() {
+    let sql = match where_input {
+        Some((where_clause, where_params)) => {
+            verify_where_clause(where_clause)?;
+            params.extend(where_params.iter().cloned());
             format!("{} WHERE {}", sql, where_clause)
-        } else {
-            sql
         }
-    }
+        None => sql,
+    };
     let mut stmt = conn.prepare(&sql)?;
     let mut rows = stmt.query(params_from_iter(&params))?;
     let mut result = Vec::new();
@@ -109,17 +122,13 @@ pub fn hard_del(
     pk: (&str, &str),
     where_input: Option<(&str, Vec<types::Value>)>,
 ) -> Result<()> {
+    verify_table_name(table_name)?;
     let (pk_name, pk_value) = pk;
     let mut params = vec![types::Value::Text(pk_value.to_string())];
     let mut sql = format!("DELETE FROM {} WHERE {} = ?", table_name, pk_name);
     sql = match where_input {
         Some((where_clause, where_params)) => {
-            if where_params.is_empty() {
-                return Err(anyhow!(
-                    "The where clause for the table {} cannot be an empty string",
-                    table_name
-                ));
-            }
+            verify_where_clause(where_clause)?;
             params.extend(where_params.clone());
             format!("{} and {}", sql, where_clause)
         }
@@ -365,12 +374,7 @@ impl UnitResource {
         );
         sql = match where_input {
             Some((where_clause, where_params)) => {
-                if where_params.is_empty() {
-                    return Err(anyhow!(
-                        "The where clause for the table {} cannot be an empty string",
-                        self.name
-                    ));
-                }
+                verify_where_clause(where_clause)?;
                 params.extend(where_params.clone());
                 format!("{} and {}", sql, where_clause)
             }
