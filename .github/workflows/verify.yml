@@ -12,7 +12,9 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    container:
+      image: xd009642/tarpaulin:develop-nightly
+      options: --security-opt seccomp=unconfined
     steps:
     - name: Checkout repo
       uses: actions/checkout@v4
@@ -20,15 +22,11 @@ jobs:
           fetch-depth: 0
     - name: Build
       run: cargo build --verbose
-    - name: Test
-      run: cargo test
-    - name: Install Coverage
-      run: cargo install cargo-tarpaulin
-    - name: Enforce Coverage
+    - name: Generate code coverage
       run: |
-        COVERAGE=$(cargo tarpaulin --out Xml | grep '\<coverage\>' | sed -e 's/.*lines-covered="\(.*\)".*/\1/')
-        MIN_COVERAGE=90
-        if [ $(echo "$COVERAGE < $MIN_COVERAGE" | bc -l) -eq 1 ]; then
-          echo "Coverage is below $MIN_COVERAGE%. Current coverage: $COVERAGE%"
-          exit 1
-        fi
+          cargo +nightly tarpaulin --verbose --all-features --workspace --timeout 120 --out
+    - name: Upload to codecov.io
+      uses: codecov/codecov-action@v2
+      with:
+          token: ${{secrets.CODECOV_TOKEN}}
+          fail_ci_if_error: true
