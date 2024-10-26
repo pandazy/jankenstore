@@ -18,12 +18,12 @@ jobs:
       uses: actions/checkout@v4
       with:
           fetch-depth: 0
-    - name: Install Coverage
-      run: cargo install cargo-tarpaulin
     - name: Build
       run: cargo build --verbose
     - name: Test
       run: cargo test
+    - name: Install Coverage
+      run: cargo install cargo-tarpaulin
     - name: Enforce Coverage
       run: |
         COVERAGE=$(cargo tarpaulin --out Xml | grep '\<coverage\>' | sed -e 's/.*lines-covered="\(.*\)".*/\1/')
