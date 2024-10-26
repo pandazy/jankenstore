@@ -32,7 +32,8 @@ pub fn fetch_one(
         Some((where_clause, where_params)) => {
             if where_params.is_empty() {
                 return Err(anyhow!(
-                    "The where clause for the table %(resource_name)s cannot be an empty string"
+                    "The where clause for the table {} cannot be an empty string",
+                    table_name
                 ));
             }
             params.extend(where_params.iter().cloned());
