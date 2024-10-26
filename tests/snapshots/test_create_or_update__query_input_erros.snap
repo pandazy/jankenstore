@@ -1,6 +1,5 @@
 ---
 source: tests/test_create_or_update.rs
-expression: err.to_string()
+expression: no_table_name_err.to_string()
 ---
-The where clause cannot be an empty string, 
-        if you don't want to use a where clause, specify where_input as None
+The table name cannot be an empty string

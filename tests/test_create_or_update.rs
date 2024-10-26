@@ -1,7 +1,7 @@
-use jankenstore::UnitResource;
+use jankenstore::{fetch_all, UnitResource};
 
-use insta::assert_snapshot;
 use anyhow::Result;
+use insta::assert_snapshot;
 use rusqlite::{types, Connection};
 use std::collections::HashMap;
 
@@ -120,14 +120,17 @@ fn test_query_input_erros() -> Result<()> {
     ]);
     resource.insert(&conn, &input)?;
 
+    let no_table_name_err = fetch_all(&conn, "", false, None, None).err().unwrap();
+    assert_snapshot!(no_table_name_err.to_string());
+
     let query = resource.fetch_all(&conn, false, None, None)?;
     assert_eq!(query.len(), 3);
 
-    let err = resource
+    let no_where_clause_err = resource
         .fetch_one(&conn, "2", Some(("", &[])))
         .err()
         .unwrap();
-    assert_snapshot!(err.to_string());
+    assert_snapshot!(no_where_clause_err.to_string());
 
     Ok(())
 }
