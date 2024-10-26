@@ -1,6 +1,6 @@
 [package]
 name = "jankenstore"
-version = "0.1.0"
+version = "0.1.2"
 edition = "2021"
 authors = ["Martin Zheng <jszhengyq@gmail.com>"]
 description = "Database operation helpers library"
@@ -8,7 +8,7 @@ readme = "README.md"
 repository = "https://github.com/pandazy/jankenstore"
 license = "MIT"
 keywords = ["rust", "sqlite", "helpers", "database"]
-categories = ["sqlite-database-helper"]
+categories = ["database"]
 
 [dependencies]
 anyhow = "1.0.*"
