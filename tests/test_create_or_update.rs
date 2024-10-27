@@ -3,7 +3,15 @@ use jankenstore::UnitResource;
 
 use anyhow::Result;
 use rusqlite::{types, Connection};
+use serde::Deserialize;
 use std::collections::HashMap;
+
+#[derive(Debug, Deserialize)]
+struct TestEntity {
+    id: i64,
+    name: String,
+    count: i64,
+}
 
 #[test]
 fn test_create_or_update_unit_resource() -> Result<()> {
@@ -52,10 +60,10 @@ fn test_create_or_update_unit_resource() -> Result<()> {
     let all = resource.fetch_all(&conn, false, None, None)?;
     assert_eq!(all.len(), 2);
 
-    let all = resource.fetch_all_json(&conn, false, None, None)?;
+    let all = resource.fetch_all_as::<TestEntity>(&conn, false, None, None)?;
     assert_eq!(all.len(), 2);
-    assert_eq!(all[0]["name"], "test0");
-    assert_eq!(all[1]["name"], "test");
+    assert_eq!(all[0].name, "test0");
+    assert_eq!(all[1].name, "test");
 
     let update_input = HashMap::new();
     let err = resource
@@ -81,12 +89,14 @@ fn test_create_or_update_unit_resource() -> Result<()> {
         _ => panic!("Unexpected value"),
     }
 
-    let row = resource.fetch_one_json(&conn, "1", None)?.unwrap();
-    assert_eq!(row["name"], "test2");
-    assert_eq!(row["count"], 6);
+    let row = resource
+        .fetch_one_as::<TestEntity>(&conn, "1", None)?
+        .unwrap();
+    assert_eq!(row.name, "test2");
+    assert_eq!(row.count, 6);
 
-    let row = resource.fetch_one_json(&conn, "-1", None)?;
-    assert_eq!(row, None);
+    let row = resource.fetch_one_as::<TestEntity>(&conn, "-1", None)?;
+    assert!(row.is_none());
 
     Ok(())
 }

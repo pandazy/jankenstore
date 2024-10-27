@@ -2,10 +2,13 @@ mod convert;
 pub mod crud;
 mod verify;
 pub use convert::val_to_json;
+pub use rusqlite::{types, Connection};
+pub use serde;
+pub use serde_json;
 
 use anyhow::{anyhow, Result};
-use crud::{fetch_all, fetch_one};
-use rusqlite::{types, Connection};
+use crud::{fetch_all, fetch_all_as, fetch_one, fetch_one_as};
+use serde::de::DeserializeOwned;
 use std::collections::{HashMap, HashSet};
 
 ///
@@ -102,17 +105,13 @@ impl UnitResource {
     /// * `conn` - the Rusqlite connection to the database
     /// * `pk_value` - the value of the primary key
     /// * `where_input` - the where clause and the parameters for the where clause
-    pub fn fetch_one_json(
+    pub fn fetch_one_as<T: DeserializeOwned>(
         &self,
         conn: &Connection,
         pk_value: &str,
         where_input: Option<(&str, &[types::Value])>,
-    ) -> Result<Option<serde_json::Value>> {
-        let row = self.fetch_one(conn, pk_value, where_input)?;
-        match row {
-            Some(row) => Ok(Some(val_to_json(&row)?)),
-            None => Ok(None),
-        }
+    ) -> Result<Option<T>> {
+        fetch_one_as::<T>(conn, &self.name, (&self.pk_name, pk_value), where_input)
     }
 
     ///
@@ -141,15 +140,14 @@ impl UnitResource {
     /// * `is_distinct` - whether to use the DISTINCT keyword in the SQL query
     /// * `display_fields` - the fields to be displayed in the result
     /// * `where_input` - the where clause and the parameters for the where clause
-    pub fn fetch_all_json(
+    pub fn fetch_all_as<T: DeserializeOwned>(
         &self,
         conn: &Connection,
         is_distinct: bool,
         display_fields: Option<&[&str]>,
         where_input: Option<(&str, &[types::Value])>,
-    ) -> Result<Vec<serde_json::Value>> {
-        let rows = self.fetch_all(conn, is_distinct, display_fields, where_input)?;
-        rows.iter().map(val_to_json).collect()
+    ) -> Result<Vec<T>> {
+        fetch_all_as(conn, &self.name, is_distinct, display_fields, where_input)
     }
 
     ///

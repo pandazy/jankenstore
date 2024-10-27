@@ -1,5 +1,6 @@
 use anyhow::Result;
 use rusqlite::{params_from_iter, types, Connection};
+use serde::de::DeserializeOwned;
 use std::collections::{HashMap, HashSet};
 
 use crate::{
@@ -37,6 +38,19 @@ pub fn fetch_one(
     }
 }
 
+pub fn fetch_one_as<T: DeserializeOwned>(
+    conn: &Connection,
+    table_name: &str,
+    (pk_name, pk_value): (&str, &str),
+    where_input: Option<(&str, &[types::Value])>,
+) -> Result<Option<T>> {
+    let row = fetch_one(conn, table_name, (pk_name, pk_value), where_input)?;
+    match row {
+        Some(row) => Ok(Some(serde_json::from_value(convert::val_to_json(&row)?)?)),
+        None => Ok(None),
+    }
+}
+
 ///
 /// fetch all matching records from the table
 /// # Arguments
@@ -69,6 +83,21 @@ pub fn fetch_all(
     let mut result = Vec::new();
     while let Some(row) = rows.next()? {
         result.push(row_to_map(row)?);
+    }
+    Ok(result)
+}
+
+pub fn fetch_all_as<T: DeserializeOwned>(
+    conn: &Connection,
+    table_name: &str,
+    is_distinct: bool,
+    display_fields: Option<&[&str]>,
+    where_input: Option<(&str, &[types::Value])>,
+) -> Result<Vec<T>> {
+    let rows = fetch_all(conn, table_name, is_distinct, display_fields, where_input)?;
+    let mut result = Vec::new();
+    for row in &rows {
+        result.push(serde_json::from_value(convert::val_to_json(row)?)?);
     }
     Ok(result)
 }
