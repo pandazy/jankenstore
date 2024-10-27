@@ -1,6 +1,7 @@
 mod convert;
 pub mod crud;
 mod verify;
+pub use convert::val_to_json;
 
 use anyhow::{anyhow, Result};
 use crud::{fetch_all, fetch_one};
@@ -150,13 +151,9 @@ impl UnitResource {
         input: &HashMap<String, types::Value>,
         where_input: Option<(&str, &[types::Value])>,
     ) -> Result<()> {
-        crud::update(
-            conn,
-            (&self.name, &self.defaults, &self.required_fields),
-            (&self.pk_name, pk_value),
-            input,
-            where_input,
-        )
+        let schema_info = (self.name.as_str(), &self.defaults, &self.required_fields);
+        let pk = (self.pk_name.as_str(), pk_value);
+        crud::update(conn, schema_info, pk, input, where_input)
     }
 
     ///
