@@ -1,0 +1,5 @@
+---
+source: tests/test_create_or_update.rs
+expression: update_null_name_error.to_string()
+---
+(table: test) The input's value type for 'name' must be something like Text(""), but received Null

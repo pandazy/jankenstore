@@ -1,3 +1,4 @@
+use insta::assert_snapshot;
 use jankenstore::UnitResource;
 
 use anyhow::Result;
@@ -14,30 +15,29 @@ fn test_create_or_update_unit_resource() -> Result<()> {
     let resource = UnitResource::new(
         "test",
         "id",
-        &["name", "id", "count"],
+        &[
+            ("id", types::Value::Integer(0)),
+            ("name", types::Value::Text("".to_string())),
+            ("count", types::Value::Integer(2)),
+        ],
         &["name"],
-        &[("name", types::Value::Text("".to_string()))],
-    );
+    )?;
     let all = resource.fetch_all(&conn, false, None, None)?;
     assert_eq!(all.len(), 0);
 
-    let input = HashMap::new();
-    let err = resource.verify_op_required(&input, true).err().unwrap();
-    assert_eq!(
-        err.to_string(),
-        "The input for the operation of test has no items"
-    );
-    let input = HashMap::from([("name".to_string(), types::Value::Text("test".to_string()))]);
-    let err = resource.insert(&conn, &input).err().unwrap();
-    assert_eq!(
-        err.to_string(),
-        "The input for the operation of test requires the value of 'id'"
-    );
+    let input = HashMap::from([("name".to_string(), types::Value::Text("test0".to_string()))]);
+    resource.insert(&conn, &input, true)?;
+    let row = resource.fetch_one(&conn, "0", None)?.unwrap();
+    let name = row.get("name").unwrap();
+    match name {
+        types::Value::Text(name) => assert_eq!(name, "test0"),
+        _ => panic!("Unexpected value"),
+    }
     let input = HashMap::from([
         ("id".to_string(), types::Value::Integer(1)),
         ("name".to_string(), types::Value::Text("test".to_string())),
     ]);
-    resource.insert(&conn, &input)?;
+    resource.insert(&conn, &input, true)?;
     let row = resource.fetch_one(&conn, "1", None)?.unwrap();
     let name = row.get("name").unwrap();
     match name {
@@ -50,26 +50,20 @@ fn test_create_or_update_unit_resource() -> Result<()> {
         _ => panic!("Unexpected value"),
     }
     let all = resource.fetch_all(&conn, false, None, None)?;
-    assert_eq!(all.len(), 1);
+    assert_eq!(all.len(), 2);
 
     let update_input = HashMap::new();
     let err = resource
         .update(&conn, "1", &update_input, None)
         .err()
         .unwrap();
-    assert_eq!(
-        err.to_string(),
-        "The input for the operation of test has no items"
-    );
+    assert_eq!(err.to_string(), "(table: test) The input has no items");
     let update_input = HashMap::from([("name".to_string(), types::Value::Null)]);
-    let err = resource
+    let update_null_name_error = resource
         .update(&conn, "1", &update_input, None)
         .err()
         .unwrap();
-    assert_eq!(
-        err.to_string(),
-        "The input for the operation of test requires the value of 'name'"
-    );
+    assert_snapshot!(update_null_name_error.to_string());
     let update_input = HashMap::from([
         ("name".to_string(), types::Value::Text("test2".to_string())),
         ("count".to_string(), types::Value::Integer(6)),

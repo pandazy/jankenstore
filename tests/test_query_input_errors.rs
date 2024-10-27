@@ -1,4 +1,4 @@
-use jankenstore::{fetch_all, UnitResource};
+use jankenstore::{crud::fetch_all, UnitResource};
 
 use anyhow::Result;
 use insta::assert_snapshot;
@@ -15,29 +15,32 @@ fn test_query_input_errors() -> Result<()> {
     let resource = UnitResource::new(
         "test",
         "id",
-        &["name", "id", "count"],
+        &[
+            ("id", types::Value::Integer(0)),
+            ("name", types::Value::Text("".to_string())),
+            ("count", types::Value::Integer(2)),
+        ],
         &["name"],
-        &[("name", types::Value::Text("".to_string()))],
-    );
+    )?;
 
     let input = HashMap::from([
         ("id".to_string(), types::Value::Integer(1)),
         ("name".to_string(), types::Value::Text("test".to_string())),
     ]);
-    resource.insert(&conn, &input)?;
+    resource.insert(&conn, &input, true)?;
 
     let input = HashMap::from([
         ("id".to_string(), types::Value::Integer(2)),
         ("name".to_string(), types::Value::Text("test2".to_string())),
         ("count".to_string(), types::Value::Integer(6)),
     ]);
-    resource.insert(&conn, &input)?;
+    resource.insert(&conn, &input, true)?;
 
     let input = HashMap::from([
         ("id".to_string(), types::Value::Integer(3)),
         ("name".to_string(), types::Value::Text("test3".to_string())),
     ]);
-    resource.insert(&conn, &input)?;
+    resource.insert(&conn, &input, true)?;
 
     let no_table_name_err = fetch_all(&conn, "", false, None, None).err().unwrap();
     assert_eq!(
@@ -67,10 +70,13 @@ fn test_write_op_query_errors() -> Result<()> {
     let resource = UnitResource::new(
         "test",
         "id",
-        &["name", "id", "count"],
+        &[
+            ("id", types::Value::Integer(0)),
+            ("name", types::Value::Text("".to_string())),
+            ("count", types::Value::Integer(2)),
+        ],
         &["name"],
-        &[("name", types::Value::Text("".to_string()))],
-    );
+    )?;
 
     let input = HashMap::from([
         ("id".to_string(), types::Value::Integer(1)),
@@ -97,13 +103,22 @@ fn test_invalid_inputs() -> Result<()> {
         "CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT NOT NULL, count INTEGER DEFAULT 2)",
         [],
     )?;
-    let resource = UnitResource::new("test", "id", &["name", "id", "count"], &["name"], &[]);
+    let resource = UnitResource::new(
+        "test",
+        "id",
+        &[
+            ("id", types::Value::Integer(0)),
+            ("name", types::Value::Text("".to_string())),
+            ("count", types::Value::Integer(2)),
+        ],
+        &["name"],
+    )?;
 
     let input = HashMap::new();
-    let err = resource.insert(&conn, &input);
+    let err = resource.insert(&conn, &input, false);
     assert_eq!(
         err.err().unwrap().to_string(),
-        "The input for the operation of test has no items"
+        "(table: test) The input has no items"
     );
 
     let input = HashMap::from([
@@ -111,10 +126,10 @@ fn test_invalid_inputs() -> Result<()> {
         ("name".to_string(), types::Value::Text("test".to_string())),
         ("age".to_string(), types::Value::Integer(18)),
     ]);
-    let err = resource.insert(&conn, &input).err().unwrap();
+    let err = resource.insert(&conn, &input, true).err().unwrap();
     assert_eq!(
         err.to_string(),
-        "The input for the operation of table 'test' has a key 'age' that is not allowed"
+        "(table: test) The input has a key 'age' that is not allowed"
     );
 
     Ok(())
