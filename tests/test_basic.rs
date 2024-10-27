@@ -1,4 +1,4 @@
-use jankenstore::UnitResource;
+use jankenstore::{val_to_json, UnitResource};
 
 use anyhow::Result;
 use rusqlite::{types, Connection};
@@ -37,5 +37,42 @@ fn test_observability() -> Result<()> {
         resource.get_defaults().get("id").unwrap(),
         &types::Value::Integer(0)
     );
+    Ok(())
+}
+
+#[test]
+fn test_json_conversion() -> Result<()> {
+    let mut map = std::collections::HashMap::new();
+    map.insert("id".to_string(), types::Value::Integer(1));
+    map.insert("name".to_string(), types::Value::Text("test".to_string()));
+    map.insert("count".to_string(), types::Value::Integer(2));
+    map.insert("statistics".to_string(), types::Value::Real(3.15));
+    map.insert("file".to_string(), types::Value::Blob(vec![1, 2, 3]));
+    map.insert("joke".to_string(), types::Value::Null);
+    let json = val_to_json(&map)?;
+    assert_eq!(
+        json["id"],
+        serde_json::Value::Number(serde_json::Number::from(1))
+    );
+    assert_eq!(json["name"], serde_json::Value::String("test".to_string()));
+    assert_eq!(
+        json["count"],
+        serde_json::Value::Number(serde_json::Number::from(2))
+    );
+    assert_eq!(
+        json["statistics"],
+        serde_json::Value::Number(serde_json::Number::from_f64(3.15).unwrap())
+    );
+    assert_eq!(
+        json.get("file")
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|v| v.as_u64().unwrap())
+            .collect::<Vec<u64>>(),
+        vec![1, 2, 3]
+    );
+    assert_eq!(json["joke"], serde_json::Value::Null);
     Ok(())
 }

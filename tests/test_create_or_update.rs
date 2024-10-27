@@ -52,6 +52,11 @@ fn test_create_or_update_unit_resource() -> Result<()> {
     let all = resource.fetch_all(&conn, false, None, None)?;
     assert_eq!(all.len(), 2);
 
+    let all = resource.fetch_all_json(&conn, false, None, None)?;
+    assert_eq!(all.len(), 2);
+    assert_eq!(all[0]["name"], "test0");
+    assert_eq!(all[1]["name"], "test");
+
     let update_input = HashMap::new();
     let err = resource
         .update(&conn, "1", &update_input, None)
@@ -75,6 +80,13 @@ fn test_create_or_update_unit_resource() -> Result<()> {
         types::Value::Integer(count) => assert_eq!(count, &6),
         _ => panic!("Unexpected value"),
     }
+
+    let row = resource.fetch_one_json(&conn, "1", None)?.unwrap();
+    assert_eq!(row["name"], "test2");
+    assert_eq!(row["count"], 6);
+
+    let row = resource.fetch_one_json(&conn, "-1", None)?;
+    assert_eq!(row, None);
 
     Ok(())
 }

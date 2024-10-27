@@ -1,6 +1,7 @@
 mod convert;
 pub mod crud;
 mod verify;
+pub use convert::val_to_json;
 
 use anyhow::{anyhow, Result};
 use crud::{fetch_all, fetch_one};
@@ -96,6 +97,25 @@ impl UnitResource {
     }
 
     ///
+    /// fetch one record from the table and convert it to JSON
+    /// # Arguments
+    /// * `conn` - the Rusqlite connection to the database
+    /// * `pk_value` - the value of the primary key
+    /// * `where_input` - the where clause and the parameters for the where clause
+    pub fn fetch_one_json(
+        &self,
+        conn: &Connection,
+        pk_value: &str,
+        where_input: Option<(&str, &[types::Value])>,
+    ) -> Result<Option<serde_json::Value>> {
+        let row = self.fetch_one(conn, pk_value, where_input)?;
+        match row {
+            Some(row) => Ok(Some(val_to_json(&row)?)),
+            None => Ok(None),
+        }
+    }
+
+    ///
     /// fetch all matching records from the table
     /// # Arguments
     /// * `conn` - the Rusqlite connection to the database
@@ -115,6 +135,24 @@ impl UnitResource {
     }
 
     ///
+    /// fetch all matching records from the table and convert them to JSON
+    /// # Arguments
+    /// * `conn` - the Rusqlite connection to the database
+    /// * `is_distinct` - whether to use the DISTINCT keyword in the SQL query
+    /// * `display_fields` - the fields to be displayed in the result
+    /// * `where_input` - the where clause and the parameters for the where clause
+    pub fn fetch_all_json(
+        &self,
+        conn: &Connection,
+        is_distinct: bool,
+        display_fields: Option<&[&str]>,
+        where_input: Option<(&str, &[types::Value])>,
+    ) -> Result<Vec<serde_json::Value>> {
+        let rows = self.fetch_all(conn, is_distinct, display_fields, where_input)?;
+        rows.iter().map(val_to_json).collect()
+    }
+
+    ///
     /// insert a new record into the table
     ///
     /// # Arguments
@@ -126,12 +164,8 @@ impl UnitResource {
         input: &HashMap<String, types::Value>,
         default_if_absent: bool,
     ) -> Result<()> {
-        crud::insert(
-            conn,
-            (&self.name, &self.defaults, &self.required_fields),
-            input,
-            default_if_absent,
-        )
+        let schema_info = (self.name.as_str(), &self.defaults, &self.required_fields);
+        crud::insert(conn, schema_info, input, default_if_absent)
     }
 
     ///
@@ -150,13 +184,9 @@ impl UnitResource {
         input: &HashMap<String, types::Value>,
         where_input: Option<(&str, &[types::Value])>,
     ) -> Result<()> {
-        crud::update(
-            conn,
-            (&self.name, &self.defaults, &self.required_fields),
-            (&self.pk_name, pk_value),
-            input,
-            where_input,
-        )
+        let schema_info = (self.name.as_str(), &self.defaults, &self.required_fields);
+        let pk = (self.pk_name.as_str(), pk_value);
+        crud::update(conn, schema_info, pk, input, where_input)
     }
 
     ///

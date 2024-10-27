@@ -13,6 +13,7 @@ categories = ["database"]
 [dependencies]
 anyhow = "1.0.*"
 rusqlite = "0.32.*"
+serde_json = "1.0.*"
 
 [dev-dependencies]
 insta = "1.40.*"
