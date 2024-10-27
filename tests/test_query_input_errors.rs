@@ -103,6 +103,21 @@ fn test_invalid_inputs() -> Result<()> {
         "CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT NOT NULL, count INTEGER DEFAULT 2)",
         [],
     )?;
+
+    let problematic_resource_error = UnitResource::new(
+        "test",
+        "id",
+        &[
+            ("id", types::Value::Integer(0)),
+            ("name", types::Value::Null),
+            ("count", types::Value::Integer(2)),
+        ],
+        &["name"],
+    )
+    .err()
+    .unwrap();
+    assert_snapshot!(problematic_resource_error.to_string());
+
     let resource = UnitResource::new(
         "test",
         "id",
@@ -113,6 +128,31 @@ fn test_invalid_inputs() -> Result<()> {
         ],
         &["name"],
     )?;
+
+    let input = HashMap::from([
+        ("id".to_string(), types::Value::Text("abc".to_string())),
+        ("name".to_string(), types::Value::Text("test".to_string())),
+    ]);
+    let mismatch_err = resource.insert(&conn, &input, true).err().unwrap();
+    assert_snapshot!(mismatch_err.to_string());
+
+    let input = HashMap::from([
+        ("id".to_string(), types::Value::Integer(1)),
+        (
+            "name".to_string(),
+            types::Value::Blob("test".as_bytes().to_vec()),
+        ),
+    ]);
+    let mismatch_blob_err = resource.insert(&conn, &input, true).err().unwrap();
+    assert_snapshot!(mismatch_blob_err.to_string());
+
+    let input = HashMap::from([
+        ("id".to_string(), types::Value::Integer(1)),
+        ("name".to_string(), types::Value::Text("test".to_string())),
+        ("count".to_string(), types::Value::Real(2.0)),
+    ]);
+    let mismatch_real_err = resource.insert(&conn, &input, true).err().unwrap();
+    assert_snapshot!(mismatch_real_err.to_string());
 
     let input = HashMap::new();
     let err = resource.insert(&conn, &input, false);
@@ -130,6 +170,14 @@ fn test_invalid_inputs() -> Result<()> {
     assert_eq!(
         err.to_string(),
         "(table: test) The input has a key 'age' that is not allowed"
+    );
+
+    let input = HashMap::from([("id".to_string(), types::Value::Integer(1))]);
+
+    let no_required_name_err = resource.insert(&conn, &input, true).err().unwrap();
+    assert_eq!(
+        no_required_name_err.to_string(),
+        "(table: test) The input requires the value of 'name'"
     );
 
     Ok(())

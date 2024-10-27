@@ -147,12 +147,14 @@ pub fn insert(
         values.push("?");
         params.push(value.clone());
     }
+
     let sql = format!(
         "INSERT INTO {} ({}) VALUES ({})",
         table_name,
         columns.join(", "),
         values.join(", ")
     );
+
     conn.execute(&sql, params_from_iter(&params))?;
     Ok(())
 }

@@ -75,6 +75,19 @@ pub fn verify_basic_write_ops(
     Ok(())
 }
 
+pub fn is_empty(val1: &types::Value) -> bool {
+    match val1 {
+        types::Value::Null => true,
+        types::Value::Text(s) => s.is_empty(),
+        types::Value::Blob(b) => b.is_empty(),
+        _ => false,
+    }
+}
+
+pub fn is_violating_required(input: &HashMap<String, types::Value>, key: &str) -> bool {
+    input.get(key).is_none() || is_empty(input.get(key).unwrap())
+}
+
 ///
 /// verify the presence of required fields of the input for the operation of the resource
 /// # Arguments
@@ -93,11 +106,11 @@ pub fn verify_required_fields_for_write_ops(
     let first_none = if all_required {
         required_fields
             .iter()
-            .find(|required_field| input.get(&required_field.to_string()).is_none())
+            .find(|required_field| is_violating_required(input, required_field))
     } else {
         input
             .keys()
-            .find(|key| required_fields.contains(*key) && input.get(&key.to_string()).is_none())
+            .find(|key| required_fields.contains(*key) && is_violating_required(input, key))
     };
     if let Some(invalid) = first_none {
         return Err(anyhow!(
