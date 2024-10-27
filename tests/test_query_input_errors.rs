@@ -180,5 +180,38 @@ fn test_invalid_inputs() -> Result<()> {
         "(table: test) The input requires the value of 'name'"
     );
 
+    let input = HashMap::from([("name".to_string(), types::Value::Text("".to_string()))]);
+    let no_required_name_err_for_empty = resource.update(&conn, "1", &input, None).err().unwrap();
+    assert_eq!(
+        no_required_name_err_for_empty.to_string(),
+        "(table: test) The input requires the value of 'name'"
+    );
+
+    let blob_resource = UnitResource::new(
+        "test",
+        "id",
+        &[
+            ("id", types::Value::Integer(0)),
+            ("name", types::Value::Text("".to_string())),
+            ("count", types::Value::Integer(2)),
+            ("data", types::Value::Blob(vec![])),
+        ],
+        &["name", "data"],
+    )?;
+
+    let input = HashMap::from([
+        ("id".to_string(), types::Value::Integer(1)),
+        ("name".to_string(), types::Value::Text("test".to_string())),
+        ("data".to_string(), types::Value::Blob(vec![])),
+    ]);
+    let no_required_blob_err_for_empty = blob_resource
+        .update(&conn, "1", &input, None)
+        .err()
+        .unwrap();
+    assert_eq!(
+        no_required_blob_err_for_empty.to_string(),
+        "(table: test) The input requires the value of 'data'"
+    );
+
     Ok(())
 }

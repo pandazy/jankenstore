@@ -56,21 +56,20 @@ pub fn verify_basic_write_ops(
             trespasser,
         ));
     }
-    let first_mismatch = input.keys().find(|key| {
-        let val = input.get(&key.to_string());
-        match val {
-            Some(val) => !verify::are_same_type(val, defaults.get(&key.to_string()).unwrap()),
-            None => false,
-        }
+    let first_mismatch = input.iter().find(|(key, value)| {
+        let default_value = defaults.get(*key).unwrap();
+        !verify::are_same_type(value, default_value)
     });
+
     if let Some(mismatch) = first_mismatch {
+        let (mismatched_key, _) = mismatch;
         return Err(anyhow!(
-      "(table: {}) The input's value type for '{}' must be something like {:?}, but received {:?}",
-      table_name,
-      mismatch,
-      defaults.get(mismatch).unwrap(),
-      input.get(mismatch).unwrap()
-  ));
+            "(table: {}) The input's value type for '{}' must be something like {:?}, but received {:?}",
+            table_name,
+            mismatched_key,
+            defaults.get(mismatched_key).unwrap(),
+            input.get(mismatched_key).unwrap() 
+        ));
     }
     Ok(())
 }
@@ -120,4 +119,20 @@ pub fn verify_required_fields_for_write_ops(
         ));
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types;
+
+    // this is only a case in theory, because
+    // - this module is not public outside the crate
+    // - since the user is not allowed specify Null as a default value,
+    //   when the user tries to specify Null, it will be always blocked by type difference error
+    // This test is only to make sure 100% coverage
+    #[test]
+    fn test_is_empty_null() {
+        assert!(is_empty(&types::Value::Null));
+    }
 }

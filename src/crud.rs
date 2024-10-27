@@ -148,11 +148,11 @@ pub fn insert(
         params.push(value.clone());
     }
 
+    let column_expression = columns.join(", ");
+    let value_expression = values.join(", ");
     let sql = format!(
         "INSERT INTO {} ({}) VALUES ({})",
-        table_name,
-        columns.join(", "),
-        values.join(", ")
+        table_name, column_expression, value_expression
     );
 
     conn.execute(&sql, params_from_iter(&params))?;
