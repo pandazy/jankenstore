@@ -8,9 +8,9 @@ use std::collections::HashMap;
 
 #[derive(Debug, Deserialize)]
 struct TestEntity {
-    id: i64,
-    name: String,
-    count: i64,
+    id: Option<i64>,
+    name: Option<String>,
+    count: Option<i64>,
 }
 
 #[test]
@@ -62,8 +62,8 @@ fn test_create_or_update_unit_resource() -> Result<()> {
 
     let all = resource.fetch_all_as::<TestEntity>(&conn, false, None, None)?;
     assert_eq!(all.len(), 2);
-    assert_eq!(all[0].name, "test0");
-    assert_eq!(all[1].name, "test");
+    assert_eq!(all[0].name.clone().unwrap(), "test0");
+    assert_eq!(all[1].name.clone().unwrap(), "test");
 
     let update_input = HashMap::new();
     let err = resource
@@ -92,8 +92,9 @@ fn test_create_or_update_unit_resource() -> Result<()> {
     let row = resource
         .fetch_one_as::<TestEntity>(&conn, "1", None)?
         .unwrap();
-    assert_eq!(row.name, "test2");
-    assert_eq!(row.count, 6);
+    assert_eq!(row.id.unwrap(), 1);
+    assert_eq!(row.name.unwrap(), "test2");
+    assert_eq!(row.count.unwrap(), 6);
 
     let row = resource.fetch_one_as::<TestEntity>(&conn, "-1", None)?;
     assert!(row.is_none());
