@@ -21,6 +21,7 @@ fn test_query_input_errors() -> Result<()> {
             ("count", types::Value::Integer(2)),
         ],
         &["name"],
+        None,
     )?;
 
     let input = HashMap::from([
@@ -52,7 +53,7 @@ fn test_query_input_errors() -> Result<()> {
     assert_eq!(query.len(), 3);
 
     let no_where_clause_err = resource
-        .fetch_one(&conn, "2", Some(("", &[])))
+        .fetch_by_pk(&conn, &["2"], Some(("", &[])))
         .err()
         .unwrap();
     assert_snapshot!(no_where_clause_err.to_string());
@@ -76,6 +77,7 @@ fn test_write_op_query_errors() -> Result<()> {
             ("count", types::Value::Integer(2)),
         ],
         &["name"],
+        None,
     )?;
 
     let input = HashMap::from([
@@ -83,16 +85,32 @@ fn test_write_op_query_errors() -> Result<()> {
         ("name".to_string(), types::Value::Text("test".to_string())),
     ]);
     let update_where_err = resource
-        .update(&conn, "1", &input, Some(("", &[])))
+        .update_by_pk(&conn, &["1"], &input, Some(("", &[])))
         .err()
         .unwrap();
     assert_snapshot!(update_where_err.to_string());
 
     let delete_error = resource
-        .hard_del(&conn, "1", Some(("", &[])))
+        .hard_del_by_pk(&conn, &["1"], Some(("", &[])))
         .err()
         .unwrap();
     assert_snapshot!(delete_error.to_string());
+
+    let delete_error = resource.hard_del_by_pk(&conn, &[], None).err().unwrap();
+    assert_snapshot!(delete_error.to_string());
+
+    let delete_error = resource
+        .hard_del_by_pk(&conn, &["1", "", "3"], None)
+        .err()
+        .unwrap();
+    assert_snapshot!(delete_error.to_string());
+
+    let delete_error = resource
+        .hard_del_by_pk(&conn, &["1", " ", "3"], None)
+        .err()
+        .unwrap();
+    assert_snapshot!(delete_error.to_string());
+
     Ok(())
 }
 
@@ -113,6 +131,7 @@ fn test_invalid_inputs() -> Result<()> {
             ("count", types::Value::Integer(2)),
         ],
         &["name"],
+        None,
     )
     .err()
     .unwrap();
@@ -127,6 +146,7 @@ fn test_invalid_inputs() -> Result<()> {
             ("count", types::Value::Integer(2)),
         ],
         &["name"],
+        None,
     )?;
 
     let input = HashMap::from([
@@ -180,12 +200,24 @@ fn test_invalid_inputs() -> Result<()> {
         "(table: test) The input requires the value of 'name'"
     );
 
-    let input = HashMap::from([("name".to_string(), types::Value::Text("".to_string()))]);
-    let no_required_name_err_for_empty = resource.update(&conn, "1", &input, None).err().unwrap();
+    let input: HashMap<String, types::Value> =
+        HashMap::from([("name".to_string(), types::Value::Text("".to_string()))]);
+    let no_required_name_err_for_empty = resource
+        .update_by_pk(&conn, &["1"], &input, None)
+        .err()
+        .unwrap();
     assert_eq!(
         no_required_name_err_for_empty.to_string(),
         "(table: test) The input requires the value of 'name'"
     );
+
+    let input: HashMap<String, types::Value> =
+        HashMap::from([("name".to_string(), types::Value::Text("alice".to_string()))]);
+    let empty_pk_error = resource
+        .update_by_pk(&conn, &[], &input, None)
+        .err()
+        .unwrap();
+    assert_snapshot!(empty_pk_error.to_string());
 
     let blob_resource = UnitResource::new(
         "test",
@@ -197,6 +229,7 @@ fn test_invalid_inputs() -> Result<()> {
             ("data", types::Value::Blob(vec![])),
         ],
         &["name", "data"],
+        None,
     )?;
 
     let input = HashMap::from([
@@ -205,7 +238,7 @@ fn test_invalid_inputs() -> Result<()> {
         ("data".to_string(), types::Value::Blob(vec![])),
     ]);
     let no_required_blob_err_for_empty = blob_resource
-        .update(&conn, "1", &input, None)
+        .update_by_pk(&conn, &["1"], &input, None)
         .err()
         .unwrap();
     assert_eq!(

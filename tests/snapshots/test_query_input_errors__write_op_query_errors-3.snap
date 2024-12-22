@@ -1,0 +1,6 @@
+---
+source: tests/test_query_input_errors.rs
+expression: delete_error.to_string()
+---
+(table: test) At least 1 value for 'id' is required for this operation, and none of them can be an empty string
+But here are received values: []

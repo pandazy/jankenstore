@@ -21,6 +21,7 @@ fn test_hard_delete() -> Result<()> {
             ("count", types::Value::Integer(2)),
         ],
         &["name"],
+        None,
     )?;
     let input = HashMap::from([
         ("id".to_string(), types::Value::Integer(1)),
@@ -43,8 +44,9 @@ fn test_hard_delete() -> Result<()> {
 
     let rows = resource.fetch_all(&conn, false, None, None).unwrap();
     assert_eq!(rows.len(), 3);
-    resource.hard_del(&conn, "1", None).unwrap();
-    let row = resource.fetch_one(&conn, "1", None).unwrap();
+    resource.hard_del_by_pk(&conn, &["1"], None).unwrap();
+    let rows = resource.fetch_by_pk(&conn, &["1"], None)?;
+    let row = rows.first();
     assert_eq!(row, None);
     let rows = resource.fetch_all(&conn, false, None, None).unwrap();
     assert_eq!(rows.len(), 2);
@@ -65,9 +67,12 @@ fn test_hard_delete() -> Result<()> {
         _ => panic!("Unexpected value"),
     }
 
-    let row = resource
-        .fetch_one(&conn, "2", Some(("count = ?", &[types::Value::Integer(5)])))
-        .unwrap();
+    let rows = resource.fetch_by_pk(
+        &conn,
+        &["2"],
+        Some(("count = ?", &[types::Value::Integer(5)])),
+    )?;
+    let row = rows.first();
     assert_eq!(row, None);
 
     Ok(())

@@ -20,6 +20,7 @@ fn test_observability() -> Result<()> {
             ("count", types::Value::Integer(2)),
         ],
         &["name"],
+        None,
     )?;
     assert_eq!(resource.get_name(), "test");
     assert_eq!(resource.get_pk_name(), "id");

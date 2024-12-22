@@ -48,10 +48,27 @@ pub fn standardize_where_items(
         Some((where_clause, where_params)) => {
             verify_where_clause(where_clause)?;
             Ok((
-                format!("{} {}", link_word, where_clause),
+                if link_word.is_empty() {
+                    where_clause.to_string()
+                } else {
+                    format!("{} {}", link_word, where_clause)
+                },
                 where_params.to_vec(),
             ))
         }
         None => Ok(("".to_string(), vec![])),
     }
+}
+
+pub fn merge_wheres(
+    where_input: Option<(&str, &[types::Value])>,
+    where_input2: Option<(&str, &[types::Value])>,
+    link_word: &str,
+) -> Result<(String, Vec<types::Value>)> {
+    let (where_clause, where_params) = standardize_where_items(where_input, "")?;
+    let (where_clause2, where_params2) = standardize_where_items(where_input2, link_word)?;
+    Ok((
+        format!("{} {}", where_clause, where_clause2),
+        [where_params.to_vec(), where_params2].concat(),
+    ))
 }

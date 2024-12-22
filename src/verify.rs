@@ -121,6 +121,22 @@ pub fn verify_required_fields_for_write_ops(
     Ok(())
 }
 
+pub fn verify_required_pk_values(
+    pk_values: &[&str],
+    table_name: &str,
+    pk_name: &str,
+) -> Result<()> {
+    if pk_values.is_empty() || pk_values.iter().any(|pk_value| pk_value.trim().is_empty()) {
+        return Err(anyhow!(
+            "(table: {}) At least 1 value for '{}' is required for this operation, and none of them can be an empty string\nBut here are received values: {:?}",
+            table_name,
+            pk_name,
+            pk_values,
+        ));
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

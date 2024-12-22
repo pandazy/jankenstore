@@ -4,51 +4,22 @@ use serde::de::DeserializeOwned;
 use std::collections::{HashMap, HashSet};
 
 use crate::{
-    convert::{self, row_to_map, standardize_where_items},
-    verify::{verify_required_fields_for_write_ops, verify_table_name},
+    convert::{self, merge_wheres, row_to_map, standardize_where_items},
+    verify::{verify_required_fields_for_write_ops, verify_required_pk_values, verify_table_name},
 };
 
-///
-/// fetch one record from the table
-/// # Arguments
-/// * `conn` - the Rusqlite connection to the database
-/// * `table_name` - the name of the table
-/// * `pk` - the primary key and its value, represented as a tuple (pk_name, pk_value)
-/// * `where_input` - the where clause and the parameters for the where clause
-pub fn fetch_one(
-    conn: &Connection,
-    table_name: &str,
-    (pk_name, pk_value): (&str, &str),
-    where_input: Option<(&str, &[types::Value])>,
-) -> Result<Option<HashMap<String, types::Value>>> {
-    verify_table_name(table_name)?;
-    let sql = format!("SELECT * FROM {} WHERE {} = ?", table_name, pk_name);
-    let (where_clause, where_params) = standardize_where_items(where_input, "AND")?;
-    let params = [vec![types::Value::Text(pk_value.to_string())], where_params].concat();
-    let sql = format!("{} {}", sql, where_clause);
-    let mut stmt = conn.prepare(&sql)?;
-    let mut rows = stmt.query(params_from_iter(&params))?;
-    let row_op = rows.next()?;
-    match row_op {
-        Some(row) => {
-            let row_record = row_to_map(row)?;
-            Ok(Some(row_record))
-        }
-        None => Ok(None),
-    }
-}
-
-pub fn fetch_one_as<T: DeserializeOwned>(
-    conn: &Connection,
-    table_name: &str,
-    (pk_name, pk_value): (&str, &str),
-    where_input: Option<(&str, &[types::Value])>,
-) -> Result<Option<T>> {
-    let row = fetch_one(conn, table_name, (pk_name, pk_value), where_input)?;
-    match row {
-        Some(row) => Ok(Some(serde_json::from_value(convert::val_to_json(&row)?)?)),
-        None => Ok(None),
-    }
+fn pk_where(pk_name: &str, pk_values: &[&str]) -> (String, Vec<types::Value>) {
+    let pk_value_placeholders = pk_values
+        .iter()
+        .map(|_| "?")
+        .collect::<Vec<&str>>()
+        .join(", ");
+    let clause = format!("{} IN ({})", pk_name, pk_value_placeholders);
+    let params = pk_values
+        .iter()
+        .map(|v| types::Value::Text(v.to_string()))
+        .collect::<Vec<types::Value>>();
+    (clause, params)
 }
 
 ///
@@ -102,40 +73,98 @@ pub fn fetch_all_as<T: DeserializeOwned>(
     Ok(result)
 }
 
+pub fn fetch_by_pk(
+    conn: &Connection,
+    table_name: &str,
+    pk_name: &str,
+    pk_values: &[&str],
+    where_input: Option<(&str, &[types::Value])>,
+) -> Result<Vec<HashMap<String, types::Value>>> {
+    let (pk_where_clause, pk_where_params) = pk_where(pk_name, pk_values);
+    let pk_where_refs = (pk_where_clause.as_str(), pk_where_params.as_slice());
+    let (where_clause, where_params) = merge_wheres(Some(pk_where_refs), where_input, "AND")?;
+    let result = fetch_all(
+        conn,
+        table_name,
+        false,
+        None,
+        Some((where_clause.as_str(), &where_params)),
+    )?;
+    Ok(result)
+}
+
+pub fn fetch_by_pk_as<T: DeserializeOwned>(
+    conn: &Connection,
+    table_name: &str,
+    pk_name: &str,
+    pk_values: &[&str],
+    where_input: Option<(&str, &[types::Value])>,
+) -> Result<Vec<T>> {
+    let rows = fetch_by_pk(conn, table_name, pk_name, pk_values, where_input)?;
+    let mut result = Vec::new();
+    for row in &rows {
+        result.push(serde_json::from_value(convert::val_to_json(row)?)?);
+    }
+    Ok(result)
+}
+
+/// The bond between two resources (tables)
+/// See also [`Bond::OwnedBy`] (n-1), [`Bond::PeerLeftIs`] (n-n) and [`Bond::PeerRightIs`] (n-n)
+///
+#[derive(Debug, Clone)]
+pub enum Bond {
+    /// the bond between the assigned resource and the input String is that
+    /// the resource represented by the inputs String is the parent node of the assigned resource
+    /// it represents a n-to-1 relationship between the assigned resource and the input String
+    /// for example, if a resource called "user" has a bond of OwnedBy("company"),
+    /// then the "user" resource is owned by the "company" resource
+    /// user will have a field called "company_id" which is a foreign key to the "company" resource
+    OwnedBy(String),
+
+    /// the bond between the assigned resource and the input String is that
+    /// the resource represented by the inputs String is a peer of the assigned resource
+    /// it represents a n-to-n relationship between the assigned resource and the input String
+    /// they are stored in a separate table with the name
+    /// `rel_{input_resource_name}_{assigned_resource_name}`, and the table at least has two fields
+    /// `{input_resource_name}_id` and `{assigned_resource_name}_id`
+    PeerLeftIs(String),
+
+    /// the bond between the assigned resource and the input String is that
+    /// similar to [`Bond::PeerLeftIs`], but the assigned resource is the left peer, so
+    /// the table name will be `rel_{assigned_resource_name}_{input_resource_name}`
+    PeerRightIs(String),
+}
+
 ///
 /// delete a record from the table
 /// # Arguments
 /// * `conn` - the Rusqlite connection to the database
 /// * `table_name` - the name of the table
-/// * `pk` - the primary key and its value, represented as a tuple (pk_name, pk_value)
+/// * `pk_name` - the name of the primary key
+/// * `pk_values` - records to be deleted represented by their primary key values
 /// * `where_input` - the where clause and the parameters for the where clause
-pub fn hard_del(
+pub fn hard_del_by_pk(
     conn: &Connection,
     table_name: &str,
-    pk: (&str, &str),
+    pk_name: &str,
+    pk_values: &[&str],
     where_input: Option<(&str, &[types::Value])>,
 ) -> Result<()> {
+    verify_required_pk_values(pk_values, table_name, pk_name)?;
     verify_table_name(table_name)?;
-    let (pk_name, pk_value) = pk;
-    let (where_clause, where_params) = standardize_where_items(where_input, "AND")?;
-    let params = [
-        vec![types::Value::Text(pk_value.to_string())],
-        where_params.to_vec(),
-    ]
-    .concat();
-    let sql = format!(
-        "DELETE FROM {} WHERE {} = ? {}",
-        table_name, pk_name, where_clause
-    );
+    let (pk_where_clause, pk_where_params) = pk_where(pk_name, pk_values);
+    let pk_where_refs = (pk_where_clause.as_str(), pk_where_params.as_slice());
+    let (where_clause, where_params) = merge_wheres(Some(pk_where_refs), where_input, "AND")?;
+    let sql = format!("DELETE FROM {} WHERE {}", table_name, where_clause);
     let mut stmt = conn.prepare(&sql)?;
-    stmt.execute(params_from_iter(&params))?;
+    stmt.execute(params_from_iter(&where_params))?;
     Ok(())
 }
 
 ///
 /// Make a record based on an input,
 /// if a field is absent in the input, the default value is used if available
-pub fn defaults_if_absent(
+fn defaults_if_absent(
     defaults: &HashMap<String, types::Value>,
     input: &HashMap<String, types::Value>,
 ) -> HashMap<String, types::Value> {
@@ -192,42 +221,45 @@ pub fn insert(
 /// update an existing record in the table
 /// # Arguments
 /// * `conn` - the Rusqlite connection to the database
-/// * `pk_value` - the value of the primary key
+/// * `table_name` - the name of the table
+/// * `defaults` - the default values for the table
+/// * `required_fields` - the required fields for the table
+/// * `pk_name` - the name of the primary key
+/// * `pk_values` - records to be updated represented by their primary key values
 /// * `input` - the new values for the record
 /// * `where_input` - the where clause and the parameters for the where clause
 /// # Returns
 /// * `Ok(())` - if the record is updated successfully
-pub fn update(
+pub fn update_by_pk(
     conn: &Connection,
     (table_name, defaults, required_fields): (
         &str,
         &HashMap<String, types::Value>,
         &HashSet<String>,
     ),
-    (pk_name, pk_value): (&str, &str),
+    pk_name: &str,
+    pk_values: &[&str],
     input: &HashMap<String, types::Value>,
     where_input: Option<(&str, &[types::Value])>,
 ) -> Result<()> {
+    verify_required_pk_values(pk_values, table_name, pk_name)?;
     verify_required_fields_for_write_ops(input, table_name, required_fields, defaults, false)?;
     let mut set_clause = vec![];
     let mut set_params = vec![];
+    let (pk_where_clause, pk_where_params) = pk_where(pk_name, pk_values);
+    let pk_where_refs = (pk_where_clause.as_str(), pk_where_params.as_slice());
     for (key, value) in input {
         set_clause.push(format!("{} = ?", key));
         set_params.push(value.clone());
     }
-    let (where_clause, where_params) = convert::standardize_where_items(where_input, "AND")?;
-    let params = [
-        set_params,
-        vec![types::Value::Text(pk_value.to_string())],
-        where_params,
-    ]
-    .concat();
+    let (merged_where_clause, merged_where_params) =
+        merge_wheres(Some(pk_where_refs), where_input, "AND")?;
+    let params = [set_params, merged_where_params].concat();
     let sql = format!(
-        "UPDATE {} SET {} where {}=? {}",
+        "UPDATE {} SET {} WHERE {}",
         table_name,
         set_clause.join(", "),
-        pk_name,
-        where_clause
+        merged_where_clause,
     );
     let mut stmt = conn.prepare(&sql)?;
     stmt.execute(params_from_iter(&params))?;
