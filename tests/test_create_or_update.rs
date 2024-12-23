@@ -138,9 +138,13 @@ fn test_fetching_by_multiple_primary_keys() -> Result<()> {
     });
     let rows = resource.fetch_by_pk(&conn, &["0", "1", "2"], None)?;
     assert_eq!(rows.len(), 3);
+    let count = resource.count_by_pk(&conn, &["0", "1", "2"], None)?;
+    assert_eq!(count, 3);
 
     let rows = resource.fetch_by_pk(&conn, &["0", "1", "2", "3", "4"], None)?;
     assert_eq!(rows.len(), 5);
+    let count = resource.count_by_pk(&conn, &["0", "1", "2", "3", "4"], None)?;
+    assert_eq!(count, 5);
 
     let rows_by_condition = resource.fetch_by_pk(
         &conn,
@@ -148,6 +152,12 @@ fn test_fetching_by_multiple_primary_keys() -> Result<()> {
         Some(("count = ?", &[types::Value::Integer(3)])),
     )?;
     assert_eq!(rows_by_condition.len(), 2);
+    let count_by_condition = resource.count_by_pk(
+        &conn,
+        &["0", "1", "2", "3", "4"],
+        Some(("count = ?", &[types::Value::Integer(3)])),
+    )?;
+    assert_eq!(count_by_condition, 2);
     assert_eq!(
         rows_by_condition[0].get("id"),
         Some(&types::Value::Integer(0))

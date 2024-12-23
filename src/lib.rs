@@ -91,6 +91,24 @@ impl UnitResource {
         &self.defaults
     }
 
+    pub fn count_all(
+        &self,
+        conn: &Connection,
+        is_distinct: bool,
+        where_input: Option<(&str, &[types::Value])>,
+    ) -> Result<i64> {
+        crud::count_all(conn, &self.name, is_distinct, where_input)
+    }
+
+    pub fn count_by_pk(
+        &self,
+        conn: &Connection,
+        pk_values: &[&str],
+        where_input: Option<(&str, &[types::Value])>,
+    ) -> Result<i64> {
+        crud::count_by_pk(conn, &self.name, &self.pk_name, pk_values, where_input)
+    }
+
     ///
     /// fetch all matching records from the table.
     /// See also [`crud::fetch_all`]

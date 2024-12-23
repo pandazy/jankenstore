@@ -23,6 +23,50 @@ fn pk_where(pk_name: &str, pk_values: &[&str]) -> (String, Vec<types::Value>) {
 }
 
 ///
+/// count all matching records from the table
+/// # Arguments
+/// * `conn` - the Rusqlite connection to the database
+/// * `table_name` - the name of the table
+/// * `is_distinct` - whether to use the DISTINCT keyword in the SQL query
+/// * `where_input` - the where clause and the parameters for the where clause
+pub fn count_all(
+    conn: &Connection,
+    table_name: &str,
+    is_distinct: bool,
+    where_input: Option<(&str, &[types::Value])>,
+) -> Result<i64> {
+    verify_table_name(table_name)?;
+    let distinct_word = if is_distinct { "DISTINCT" } else { "" };
+    let sql = format!("SELECT COUNT({} *) FROM {}", distinct_word, table_name);
+    let (where_clause, where_params) = standardize_where_items(where_input, "WHERE")?;
+    let sql = format!("{} {}", sql, where_clause);
+    let mut stmt = conn.prepare(&sql)?;
+    let mut rows = stmt.query(params_from_iter(&where_params))?;
+    let row = rows.next()?;
+    let count = row.unwrap().get(0)?;
+    Ok(count)
+}
+
+pub fn count_by_pk(
+    conn: &Connection,
+    table_name: &str,
+    pk_name: &str,
+    pk_values: &[&str],
+    where_input: Option<(&str, &[types::Value])>,
+) -> Result<i64> {
+    let (pk_where_clause, pk_where_params) = pk_where(pk_name, pk_values);
+    let pk_where_refs = (pk_where_clause.as_str(), pk_where_params.as_slice());
+    let (where_clause, where_params) = merge_wheres(Some(pk_where_refs), where_input, "AND")?;
+    let result = count_all(
+        conn,
+        table_name,
+        false,
+        Some((where_clause.as_str(), &where_params)),
+    )?;
+    Ok(result)
+}
+
+///
 /// fetch all matching records from the table
 /// # Arguments
 /// * `conn` - the Rusqlite connection to the database

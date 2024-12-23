@@ -48,8 +48,8 @@ fn test_hard_delete() -> Result<()> {
     let rows = resource.fetch_by_pk(&conn, &["1"], None)?;
     let row = rows.first();
     assert_eq!(row, None);
-    let rows = resource.fetch_all(&conn, false, None, None).unwrap();
-    assert_eq!(rows.len(), 2);
+    let count = resource.count_all(&conn, false, None)?;
+    assert_eq!(count, 2);
 
     let rows = resource
         .fetch_all(
@@ -72,6 +72,13 @@ fn test_hard_delete() -> Result<()> {
         &["2"],
         Some(("count = ?", &[types::Value::Integer(5)])),
     )?;
+    let count = resource.count_all(
+        &conn,
+        false,
+        Some(("count = ?", &[types::Value::Integer(5)])),
+    )?;
+    assert_eq!(count, 0);
+
     let row = rows.first();
     assert_eq!(row, None);
 
