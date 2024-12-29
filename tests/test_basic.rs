@@ -1,4 +1,4 @@
-use jankenstore::{val_to_json, UnitResource};
+use jankenstore::{crud::shift::val_to_json, TblRep};
 
 use anyhow::Result;
 use rusqlite::{types, Connection};
@@ -11,7 +11,7 @@ fn test_observability() -> Result<()> {
         [],
     )
     .unwrap();
-    let resource = UnitResource::new(
+    let tbl_rep = TblRep::new(
         "test",
         "id",
         &[
@@ -20,22 +20,21 @@ fn test_observability() -> Result<()> {
             ("count", types::Value::Integer(2)),
         ],
         &["name"],
-        None,
     )?;
-    assert_eq!(resource.get_name(), "test");
-    assert_eq!(resource.get_pk_name(), "id");
-    assert_eq!(resource.get_required_fields().len(), 2);
-    assert_eq!(resource.get_defaults().len(), 3);
+    assert_eq!(tbl_rep.get_name(), "test");
+    assert_eq!(tbl_rep.get_pk_name(), "id");
+    assert_eq!(tbl_rep.get_required_fields().len(), 2);
+    assert_eq!(tbl_rep.get_defaults().len(), 3);
     assert_eq!(
-        resource.get_defaults().get("name").unwrap(),
+        tbl_rep.get_defaults().get("name").unwrap(),
         &types::Value::Text("def".to_string())
     );
     assert_eq!(
-        resource.get_defaults().get("count").unwrap(),
+        tbl_rep.get_defaults().get("count").unwrap(),
         &types::Value::Integer(2)
     );
     assert_eq!(
-        resource.get_defaults().get("id").unwrap(),
+        tbl_rep.get_defaults().get("id").unwrap(),
         &types::Value::Integer(0)
     );
     Ok(())
