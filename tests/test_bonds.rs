@@ -110,10 +110,54 @@ fn test_relink_by_old_fk() -> anyhow::Result<()> {
     let songs = fetch::f_by_pk(&conn, "song", "id", &[v_int(4)], None, None)?;
     assert_eq!(songs[0].get("artist_id"), Some(&v_int(4)));
 
+    // do nothing if the same artist
+    relink::n1_by_ofk(&conn, "song", ("artist_id", &v_int(4), &v_int(4)), None)?;
+
     relink::n1_by_ofk(&conn, "song", ("artist_id", &v_int(4), &v_int(1)), None)?;
 
     let songs = fetch::f_by_pk(&conn, "song", "id", &[v_int(4)], None, None)?;
     assert_eq!(songs[0].get("artist_id"), Some(&v_int(1)));
+
+    Ok(())
+}
+
+#[test]
+fn test_relink_nn() -> anyhow::Result<()> {
+    let conn = Connection::open_in_memory()?;
+    initialize_db(&conn)?;
+
+    let albums_of_songs = bond::fetch::list_n_of_n(
+        &conn,
+        ("album", "id", "album_id"),
+        ("rel_album_song", "song_id"),
+        &[v_int(4)],
+        None,
+        None,
+    )?;
+
+    assert_eq!(albums_of_songs.len(), 0);
+
+    relink::nn(
+        &conn,
+        "rel_album_song",
+        ("album_id", &[v_int(2)]),
+        ("song_id", &[v_int(4)]),
+    )?;
+
+    let albums_of_songs = bond::fetch::list_n_of_n(
+        &conn,
+        ("album", "id", "album_id"),
+        ("rel_album_song", "song_id"),
+        &[v_int(4)],
+        None,
+        None,
+    )?;
+
+    assert_eq!(albums_of_songs.len(), 1);
+    assert_eq!(
+        albums_of_songs[0].get("name"),
+        Some(&v_txt("Anime Songs 1"))
+    );
 
     Ok(())
 }
