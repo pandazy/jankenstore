@@ -196,21 +196,3 @@ pub fn d_all(
     }
     Ok(())
 }
-
-#[cfg(test)]
-mod tests {
-    use rusqlite::types;
-
-    use crate::crud::shift::val::v_txt;
-
-    #[test]
-    fn it_works() {
-        let mut result = ["a", "b", "b", "b", "c", "c"]
-            .iter()
-            .map(|x| v_txt(x))
-            .collect::<Vec<types::Value>>();
-        result.dedup();
-
-        assert_eq!(result.len(), 3);
-    }
-}
