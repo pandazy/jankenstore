@@ -8,28 +8,28 @@ use crate::crud::{del, sql::merge_q_configs, total, update, verify::verify_value
 /// build or rebuild the links of the target records to their parent record
 /// # Arguments
 /// * `conn` - the Rusqlite connection to the database
-/// * `my_name` - the name of the target records' table
-/// * `prk_name` - the child table's column name that references the parent table
-/// * `prk_val` - the parent node record's primary key value
-/// * `my_pk_name` - the column name of the target records' primary key
-/// * `my_pk_vals` - the values of the records that will be owned by the parent table record
+/// * `main_table` - the name of the target records' table
+/// * `parent_pk_name` - the child table's column name that references the parent table
+/// * `parent_pk_val` - the parent node record's primary key value
+/// * `main_pk_name` - the column name of the target records' primary key
+/// * `main_pk_vals` - the values of the records that will be owned by the parent table record
 ///
 pub fn n1_by_pk(
     conn: &Connection,
-    my_name: &str,
-    (prk_name, prk_val): (&str, &types::Value),
-    (my_pk_name, my_pk_vals): (&str, &[types::Value]),
+    main_table: &str,
+    (parent_pk_name, new_parent_pk_val): (&str, &types::Value),
+    (main_pk_name, main_pk_vals): (&str, &[types::Value]),
     where_q_config: Option<(&str, &[types::Value])>,
 ) -> anyhow::Result<()> {
-    let pr_val = prk_val.clone();
-    verify_values_required(&[pr_val.clone()], my_name, prk_name)?;
-    verify_values_required(my_pk_vals, my_name, my_pk_name)?;
-    let input = HashMap::from([(prk_name.to_string(), pr_val)]);
+    let pr_val = new_parent_pk_val.clone();
+    verify_values_required(&[pr_val.clone()], main_table, parent_pk_name)?;
+    verify_values_required(main_pk_vals, main_table, main_pk_name)?;
+    let input = HashMap::from([(parent_pk_name.to_string(), pr_val)]);
     update::u_by_pk(
         conn,
-        my_name,
-        my_pk_name,
-        my_pk_vals,
+        main_table,
+        main_pk_name,
+        main_pk_vals,
         &input,
         where_q_config,
         None,
