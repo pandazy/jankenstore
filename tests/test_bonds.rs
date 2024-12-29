@@ -1,6 +1,8 @@
+use std::collections::HashMap;
+
 use helpers::initialize_db;
 use jankenstore::{
-    bond::{self, relink},
+    bond::{self, create, relink},
     crud::{
         fetch,
         shift::val::{v_int, v_txt},
@@ -196,6 +198,43 @@ fn test_delete_nn_bond() -> anyhow::Result<()> {
     )?;
 
     assert_eq!(songs_of_albums.len(), 0);
+
+    Ok(())
+}
+
+#[test]
+fn test_insert_with_n1() -> anyhow::Result<()> {
+    let conn = Connection::open_in_memory()?;
+    initialize_db(&conn)?;
+
+    let songs_of_beetles =
+        bond::fetch::list_n_of_1(&conn, "song", "artist_id", &[v_int(3)], None, None)?;
+    assert_eq!(songs_of_beetles.len(), 1);
+
+    create::n1(
+        &conn,
+        "song",
+        ("artist_id", &v_int(3)),
+        &HashMap::from([
+            ("id".to_string(), v_int(7)),
+            ("name".to_string(), v_txt("Yellow Submarine")),
+            ("memo".to_string(), v_txt("60s")),
+        ]),
+        None,
+    )?;
+
+    let songs_of_beetles =
+        bond::fetch::list_n_of_1(&conn, "song", "artist_id", &[v_int(3)], None, None)?;
+
+    assert_eq!(songs_of_beetles.len(), 2);
+    assert_eq!(
+        songs_of_beetles[0].get("name"),
+        Some(&v_txt("A Hard Day's Night"))
+    );
+    assert_eq!(
+        songs_of_beetles[1].get("name"),
+        Some(&v_txt("Yellow Submarine"))
+    );
 
     Ok(())
 }
