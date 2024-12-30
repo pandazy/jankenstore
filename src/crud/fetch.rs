@@ -56,6 +56,7 @@ pub fn f_all_as<T: DeserializeOwned>(
     display_fields: Option<&[&str]>,
     where_q_config: Option<(&str, &[types::Value])>,
 ) -> Result<Vec<T>> {
+    // line
     let rows = f_all(
         conn,
         table_name,
@@ -113,4 +114,23 @@ pub fn f_by_pk_as<T: DeserializeOwned>(
         result.push(serde_json::from_value(shift::val_to_json(row)?)?);
     }
     Ok(result)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::f_all_as;
+
+    use super::*;
+
+    #[test]
+    fn test_fetch_all_as() {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute("CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)", [])
+            .unwrap();
+        conn.execute("INSERT INTO test (name) VALUES ('test')", [])
+            .unwrap();
+        let result: Vec<serde_json::Value> =
+            f_all_as(&conn, "test", false, Some(&["id", "name"]), None).unwrap();
+        assert_eq!(result.len(), 1);
+    }
 }

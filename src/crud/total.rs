@@ -27,10 +27,10 @@ pub fn t_all(
     let sql = format!("{} {}", sql, where_q_clause);
     let mut stmt = conn.prepare(&sql)?;
     let mut rows = stmt.query(params_from_iter(&where_q_params))?;
-    let count = match rows.next()? {
-        Some(row) => row.get(0)?,
-        None => 0,
-    };
+    let count = rows
+        .next()?
+        .ok_or(anyhow::anyhow!("No rows returned from query: {}", sql))?
+        .get(0)?;
     Ok(count)
 }
 

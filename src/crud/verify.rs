@@ -229,4 +229,15 @@ mod tests {
     fn test_is_empty_null() {
         assert!(is_empty(&types::Value::Null));
     }
+
+    // this is only a case in theory, because
+    // - basic verification doesn't allow columns without default values
+    // - the input will never contains a column that does not exist when is_violating_required_rule is used
+    // so this test is only to make sure 100% coverage
+    #[test]
+    fn test_is_violating_required() {
+        let input = HashMap::from([("count".to_string(), types::Value::Integer(0))]);
+        assert!(is_violating_required_rule(&input, "name"));
+        assert!(!is_violating_required_rule(&input, "count"));
+    }
 }
