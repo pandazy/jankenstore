@@ -21,9 +21,8 @@ use std::collections::HashMap;
 pub fn f_all(
     conn: &Connection,
     table_name: &str,
-    is_distinct: bool,
-    display_fields: Option<&[&str]>,
     where_q_config: Option<(&str, &[types::Value])>,
+    (is_distinct, display_fields): (bool, Option<&[&str]>),
 ) -> Result<Vec<HashMap<String, types::Value>>> {
     verify_table_name(table_name)?;
     let default_fields = vec!["*"];
@@ -52,18 +51,11 @@ pub fn f_all(
 pub fn f_all_as<T: DeserializeOwned>(
     conn: &Connection,
     table_name: &str,
-    is_distinct: bool,
-    display_fields: Option<&[&str]>,
     where_q_config: Option<(&str, &[types::Value])>,
+    (is_distinct, display_fields): (bool, Option<&[&str]>),
 ) -> Result<Vec<T>> {
-    // line
-    let rows = f_all(
-        conn,
-        table_name,
-        is_distinct,
-        display_fields,
-        where_q_config,
-    )?;
+    let display_opt = (is_distinct, display_fields);
+    let rows = f_all(conn, table_name, where_q_config, display_opt)?;
     let mut result = Vec::new();
     for row in &rows {
         result.push(serde_json::from_value(shift::val_to_json(row)?)?);
@@ -74,10 +66,9 @@ pub fn f_all_as<T: DeserializeOwned>(
 pub fn f_by_pk(
     conn: &Connection,
     table_name: &str,
-    pk_name: &str,
-    pk_values: &[types::Value],
-    display_fields: Option<&[&str]>,
+    (pk_name, pk_values): (&str, &[types::Value]),
     where_q_config: Option<(&str, &[types::Value])>,
+    display_fields: Option<&[&str]>,
 ) -> Result<Vec<HashMap<String, types::Value>>> {
     let (pk_find_clause, pk_find_params) = sql::in_them(pk_name, pk_values);
     let pk_find_refs = (pk_find_clause.as_str(), pk_find_params.as_slice());
@@ -86,9 +77,8 @@ pub fn f_by_pk(
     let result = f_all(
         conn,
         table_name,
-        false,
-        display_fields,
         Some((where_clause.as_str(), &where_params)),
+        (false, display_fields),
     )?;
     Ok(result)
 }
@@ -96,19 +86,11 @@ pub fn f_by_pk(
 pub fn f_by_pk_as<T: DeserializeOwned>(
     conn: &Connection,
     table_name: &str,
-    pk_name: &str,
-    pk_values: &[types::Value],
-    display_fields: Option<&[&str]>,
+    pk_config: (&str, &[types::Value]),
     where_q_config: Option<(&str, &[types::Value])>,
+    display_fields: Option<&[&str]>,
 ) -> Result<Vec<T>> {
-    let rows = f_by_pk(
-        conn,
-        table_name,
-        pk_name,
-        pk_values,
-        display_fields,
-        where_q_config,
-    )?;
+    let rows = f_by_pk(conn, table_name, pk_config, where_q_config, display_fields)?;
     let mut result = Vec::new();
     for row in &rows {
         result.push(serde_json::from_value(shift::val_to_json(row)?)?);
@@ -129,8 +111,7 @@ mod tests {
             .unwrap();
         conn.execute("INSERT INTO test (name) VALUES ('test')", [])
             .unwrap();
-        let result: Vec<serde_json::Value> =
-            f_all_as(&conn, "test", false, Some(&["id", "name"]), None).unwrap();
+        let result: Vec<serde_json::Value> = f_all_as(&conn, "test", None, (false, None)).unwrap();
         assert_eq!(result.len(), 1);
     }
 }

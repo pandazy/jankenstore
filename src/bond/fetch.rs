@@ -35,9 +35,8 @@ pub fn list_n_of_1(
     let result = fetch::f_all(
         conn,
         table_name,
-        false,
-        display_fields,
         Some((where_clause.as_str(), &where_params)),
+        (false, display_fields),
     )?;
     Ok(result)
 }
@@ -71,9 +70,8 @@ pub fn list_n_of_n(
     let result = fetch::f_all(
         conn,
         main_table,
-        false,
-        display_fields,
         Some((where_clause.as_str(), &where_params)),
+        (false, display_fields),
     )?;
     Ok(result)
 }

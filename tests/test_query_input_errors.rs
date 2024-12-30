@@ -45,13 +45,13 @@ fn test_query_input_errors() -> Result<()> {
     ]);
     tbl_rep.insert(&conn, &input, true)?;
 
-    let no_table_name_err = fetch::f_all(&conn, "", false, None, None).err().unwrap();
+    let no_table_name_err = fetch::f_all(&conn, "", None, (false, None)).err().unwrap();
     assert_eq!(
         no_table_name_err.to_string(),
         "The table name cannot be an empty string"
     );
 
-    let query = tbl_rep.list(&conn, false, None, None)?;
+    let query = tbl_rep.list(&conn, None, (false, None))?;
     assert_eq!(query.len(), 3);
 
     let no_where_clause_err = tbl_rep

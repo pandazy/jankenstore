@@ -88,7 +88,7 @@ fn test_relink_by_id() -> anyhow::Result<()> {
     let conn = Connection::open_in_memory()?;
     initialize_db(&conn)?;
 
-    let songs = fetch::f_by_pk(&conn, "song", "id", &[v_int(4)], None, None)?;
+    let songs = fetch::f_by_pk(&conn, "song", ("id", &[v_int(4)]), None, None)?;
     assert_eq!(songs[0].get("artist_id"), Some(&v_int(4)));
 
     relink::n1_by_pk(
@@ -99,7 +99,7 @@ fn test_relink_by_id() -> anyhow::Result<()> {
         None,
     )?;
 
-    let songs = fetch::f_by_pk(&conn, "song", "id", &[v_int(4)], None, None)?;
+    let songs = fetch::f_by_pk(&conn, "song", ("id", &[v_int(4)]), None, None)?;
     assert_eq!(songs[0].get("artist_id"), Some(&v_int(1)));
 
     Ok(())
@@ -110,7 +110,7 @@ fn test_relink_by_old_fk() -> anyhow::Result<()> {
     let conn = Connection::open_in_memory()?;
     initialize_db(&conn)?;
 
-    let songs = fetch::f_by_pk(&conn, "song", "id", &[v_int(4)], None, None)?;
+    let songs = fetch::f_by_pk(&conn, "song", ("id", &[v_int(4)]), None, None)?;
     assert_eq!(songs[0].get("artist_id"), Some(&v_int(4)));
 
     // do nothing if the same artist
@@ -119,7 +119,7 @@ fn test_relink_by_old_fk() -> anyhow::Result<()> {
     // only change if the artist is different
     relink::n1_by_ofk(&conn, "song", ("artist_id", &v_int(4), &v_int(1)), None)?;
 
-    let songs = fetch::f_by_pk(&conn, "song", "id", &[v_int(4)], None, None)?;
+    let songs = fetch::f_by_pk(&conn, "song", ("id", &[v_int(4)]), None, None)?;
     assert_eq!(songs[0].get("artist_id"), Some(&v_int(1)));
 
     Ok(())

@@ -41,7 +41,7 @@ fn test_hard_delete() -> Result<()> {
     ]);
     tbl_rep.insert(&conn, &input, true).unwrap();
 
-    let rows = tbl_rep.list(&conn, false, None, None).unwrap();
+    let rows = tbl_rep.list(&conn, None, (false, None)).unwrap();
     assert_eq!(rows.len(), 3);
     tbl_rep.del_by_pk(&conn, &["1"].map(v_txt), None).unwrap();
     let rows = tbl_rep.list_by_pk(&conn, &["1"].map(v_txt), None)?;
@@ -53,9 +53,8 @@ fn test_hard_delete() -> Result<()> {
     let rows = tbl_rep
         .list(
             &conn,
-            false,
-            None,
             Some(("id = ?", &[types::Value::Integer(2)])),
+            (false, None),
         )
         .unwrap();
     assert_eq!(rows.len(), 1);

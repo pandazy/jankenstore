@@ -30,7 +30,7 @@ fn test_create_or_update_tbl_rep() -> Result<()> {
         ],
         &["name"],
     )?;
-    let all = tbl_rep.list(&conn, false, None, None)?;
+    let all = tbl_rep.list(&conn, None, (false, None))?;
     assert_eq!(all.len(), 0);
 
     let input = HashMap::from([("name".to_string(), v_txt("test0"))]);
@@ -57,10 +57,10 @@ fn test_create_or_update_tbl_rep() -> Result<()> {
         types::Value::Integer(count) => assert_eq!(count, &2),
         _ => panic!("Unexpected value"),
     }
-    let all = tbl_rep.list(&conn, false, None, None)?;
+    let all = tbl_rep.list(&conn, None, (false, None))?;
     assert_eq!(all.len(), 2);
 
-    let all = tbl_rep.list_as::<TestEntity>(&conn, false, None, None)?;
+    let all = tbl_rep.list_as::<TestEntity>(&conn, None, (false, None))?;
     assert_eq!(all.len(), 2);
     assert_eq!(all[0].name.clone().unwrap(), "test0");
     assert_eq!(all[1].name.clone().unwrap(), "test");

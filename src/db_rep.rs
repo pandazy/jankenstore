@@ -121,17 +121,10 @@ impl TblRep {
     pub fn list(
         &self,
         conn: &Connection,
-        is_distinct: bool,
-        display_fields: Option<&[&str]>,
         where_q_config: Option<(&str, &[types::Value])>,
+        display_config: (bool, Option<&[&str]>),
     ) -> Result<Vec<HashMap<String, types::Value>>> {
-        fetch::f_all(
-            conn,
-            &self.name,
-            is_distinct,
-            display_fields,
-            where_q_config,
-        )
+        fetch::f_all(conn, &self.name, where_q_config, display_config)
     }
 
     ///
@@ -145,17 +138,10 @@ impl TblRep {
     pub fn list_as<T: DeserializeOwned>(
         &self,
         conn: &Connection,
-        is_distinct: bool,
-        display_fields: Option<&[&str]>,
         where_q_config: Option<(&str, &[types::Value])>,
+        display_config: (bool, Option<&[&str]>),
     ) -> Result<Vec<T>> {
-        fetch::f_all_as(
-            conn,
-            &self.name,
-            is_distinct,
-            display_fields,
-            where_q_config,
-        )
+        fetch::f_all_as(conn, &self.name, where_q_config, display_config)
     }
 
     pub fn list_by_pk(
@@ -167,10 +153,9 @@ impl TblRep {
         fetch::f_by_pk(
             conn,
             &self.name,
-            &self.pk_name,
-            pk_values,
-            None,
+            (&self.pk_name, pk_values),
             where_q_config,
+            None,
         )
     }
 
@@ -180,14 +165,8 @@ impl TblRep {
         pk_values: &[types::Value],
         where_q_config: Option<(&str, &[types::Value])>,
     ) -> Result<Vec<T>> {
-        fetch::f_by_pk_as(
-            conn,
-            &self.name,
-            &self.pk_name,
-            pk_values,
-            None,
-            where_q_config,
-        )
+        let pk_config = (self.pk_name.as_str(), pk_values);
+        fetch::f_by_pk_as(conn, &self.name, pk_config, where_q_config, None)
     }
 
     ///
