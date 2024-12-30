@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use helpers::initialize_db;
+use insta::assert_snapshot;
 use jankenstore::{
     bond::{self, create, relink},
     crud::{
@@ -339,6 +340,74 @@ fn test_insert_with_nn() -> anyhow::Result<()> {
             Some(&v_txt("Shouted Serenade"))
         );
     });
+
+    Ok(())
+}
+
+#[test]
+fn test_insert_with_nn_errors() -> anyhow::Result<()> {
+    let conn = Connection::open_in_memory()?;
+    initialize_db(&conn)?;
+
+    let new_artist = HashMap::from([
+        ("id".to_string(), v_int(6)),
+        ("name".to_string(), v_txt("LiSA")),
+    ]);
+
+    crud::create::i_one(&conn, "artist", &new_artist, None)?;
+
+    let new_album = HashMap::from([
+        ("id".to_string(), v_int(3)),
+        ("name".to_string(), v_txt("AniSong 2024")),
+    ]);
+
+    let new_album_2 = HashMap::from([
+        ("id".to_string(), v_int(4)),
+        ("name".to_string(), v_txt("Latest AniSong")),
+    ]);
+
+    for new_album in [new_album, new_album_2] {
+        crud::create::i_one(&conn, "album", &new_album, None)?;
+    }
+
+    // create bonds
+    let empty_pk_error = create::nn(
+        &conn,
+        &HashMap::from([
+            ("name".to_string(), v_txt("Queen")),
+            ("artist_id".to_string(), v_int(6)),
+            ("memo".to_string(), v_txt("Fall 2024")),
+        ]),
+        ("song", "id"),
+        (
+            "rel_album_song",
+            "album_id",
+            "song_id",
+            &[v_int(3), v_int(4)],
+        ),
+        None,
+    )
+    .err()
+    .unwrap();
+
+    assert_snapshot!(empty_pk_error.to_string());
+
+    let empty_fk_error = create::nn(
+        &conn,
+        &HashMap::from([
+            ("id".to_string(), v_int(8)),
+            ("name".to_string(), v_txt("Queen")),
+            ("artist_id".to_string(), v_int(6)),
+            ("memo".to_string(), v_txt("Fall 2024")),
+        ]),
+        ("song", "id"),
+        ("rel_album_song", "album_id", "song_id", &[]),
+        None,
+    )
+    .err()
+    .unwrap();
+
+    assert_snapshot!(empty_fk_error.to_string());
 
     Ok(())
 }
