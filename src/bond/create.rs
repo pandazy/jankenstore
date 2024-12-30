@@ -7,6 +7,8 @@ use crate::crud::{
     verify::{get_verified_insert_inputs, verify_values_required},
 };
 
+use super::relink;
+
 pub fn n1(
     conn: &Connection,
     table_name: &str,
@@ -42,10 +44,12 @@ pub fn nn(
     verify_values_required(&[my_pk_val.clone()], rel_table_name, main_col_in_rel)?;
     create::i_one(conn, table_name, input, verification_options)?;
     for fk_val in fk_vals {
-        let mut rel_input = HashMap::new();
-        rel_input.insert(peer_col_in_rel.to_string(), fk_val.clone());
-        rel_input.insert(main_col_in_rel.to_string(), my_pk_val.clone());
-        create::i_one(conn, rel_table_name, &rel_input, None)?;
+        relink::nn(
+            conn,
+            rel_table_name,
+            (main_col_in_rel, &[my_pk_val.clone()]),
+            (peer_col_in_rel, &[fk_val.clone()]),
+        )?;
     }
     Ok(())
 }

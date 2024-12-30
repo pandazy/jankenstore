@@ -4,7 +4,7 @@ use helpers::initialize_db;
 use jankenstore::{
     bond::{self, create, relink},
     crud::{
-        fetch,
+        self, fetch,
         shift::val::{v_int, v_txt},
     },
 };
@@ -235,6 +235,110 @@ fn test_insert_with_n1() -> anyhow::Result<()> {
         songs_of_beetles[1].get("name"),
         Some(&v_txt("Yellow Submarine"))
     );
+
+    Ok(())
+}
+
+#[test]
+fn test_insert_with_nn() -> anyhow::Result<()> {
+    let conn = Connection::open_in_memory()?;
+    initialize_db(&conn)?;
+
+    let new_artist = HashMap::from([
+        ("id".to_string(), v_int(6)),
+        ("name".to_string(), v_txt("LiSA")),
+    ]);
+
+    crud::create::i_one(&conn, "artist", &new_artist, None)?;
+
+    let new_album = HashMap::from([
+        ("id".to_string(), v_int(3)),
+        ("name".to_string(), v_txt("AniSong 2024")),
+    ]);
+
+    let new_album_2 = HashMap::from([
+        ("id".to_string(), v_int(4)),
+        ("name".to_string(), v_txt("Latest AniSong")),
+    ]);
+
+    for new_album in [new_album, new_album_2] {
+        crud::create::i_one(&conn, "album", &new_album, None)?;
+    }
+
+    // create bonds
+    create::nn(
+        &conn,
+        &HashMap::from([
+            ("id".to_string(), v_int(8)),
+            ("name".to_string(), v_txt("Queen")),
+            ("artist_id".to_string(), v_int(6)),
+            ("memo".to_string(), v_txt("Fall 2024")),
+        ]),
+        ("song", "id"),
+        (
+            "rel_album_song",
+            "album_id",
+            "song_id",
+            &[v_int(3), v_int(4)],
+        ),
+        None,
+    )?;
+
+    create::nn(
+        &conn,
+        &HashMap::from([
+            ("id".to_string(), v_int(9)),
+            ("name".to_string(), v_txt("Shouted Serenade")),
+            ("artist_id".to_string(), v_int(6)),
+            ("memo".to_string(), v_txt("Spring 2024")),
+        ]),
+        ("song", "id"),
+        (
+            "rel_album_song",
+            "album_id",
+            "song_id",
+            &[v_int(3), v_int(4)],
+        ),
+        None,
+    )?;
+
+    [v_int(8), v_int(9)].iter().for_each(|song_id| {
+        let albums_of_song = bond::fetch::list_n_of_n(
+            &conn,
+            ("album", "id", "album_id"),
+            ("rel_album_song", "song_id"),
+            &[song_id.clone()],
+            None,
+            None,
+        )
+        .unwrap();
+
+        assert_eq!(albums_of_song.len(), 2);
+        assert_eq!(albums_of_song[0].get("name"), Some(&v_txt("AniSong 2024")));
+        assert_eq!(
+            albums_of_song[1].get("name"),
+            Some(&v_txt("Latest AniSong"))
+        );
+    });
+
+    [v_int(3), v_int(4)].iter().for_each(|album_id| {
+        let songs_of_album = bond::fetch::list_n_of_n(
+            &conn,
+            ("song", "id", "song_id"),
+            ("rel_album_song", "album_id"),
+            &[album_id.clone()],
+            None,
+            None,
+        )
+        .unwrap();
+
+        assert_eq!(songs_of_album.len(), 2);
+        assert_eq!(songs_of_album[0].get("name"), Some(&v_txt("Queen")));
+        assert_eq!(
+            songs_of_album[1].get("name"),
+            Some(&v_txt("Shouted Serenade"))
+        );
+    });
 
     Ok(())
 }
