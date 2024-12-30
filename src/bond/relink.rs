@@ -8,28 +8,30 @@ use crate::crud::{del, sql::merge_q_configs, total, update, verify::verify_value
 /// build or rebuild the links of the target records to their parent record
 /// # Arguments
 /// * `conn` - the Rusqlite connection to the database
-/// * `main_table` - the name of the target records' table
-/// * `parent_pk_name` - the child table's column name that references the parent table
-/// * `parent_pk_val` - the parent node record's primary key value
-/// * `main_pk_name` - the column name of the target records' primary key
-/// * `main_pk_vals` - the values of the records that will be owned by the parent table record
+/// * `child_table` - the name of the target records' table (child table, n in n-1)
+/// * `parent_config` - the parent-related table matching settings (1 in n-1)
+///                    - `tuple(column_name_of_the_parent_table_in_the_child_table, value_of_the_parent_table_primary_key)`
+/// * `child_config` - the column information of the child table, similar to `parent_config`
+/// * `where_q_config` - the where clause and the parameters for condition matching
 ///
 pub fn n1_by_pk(
     conn: &Connection,
-    main_table: &str,
-    (parent_pk_name, new_parent_pk_val): (&str, &types::Value),
-    (main_pk_name, main_pk_vals): (&str, &[types::Value]),
+    child_table: &str,
+    parent_config: (&str, &types::Value),
+    child_config: (&str, &[types::Value]),
     where_q_config: Option<(&str, &[types::Value])>,
 ) -> anyhow::Result<()> {
-    let pr_val = new_parent_pk_val.clone();
-    verify_values_required(&[pr_val.clone()], main_table, parent_pk_name)?;
-    verify_values_required(main_pk_vals, main_table, main_pk_name)?;
-    let input = HashMap::from([(parent_pk_name.to_string(), pr_val)]);
+    let (parent_col, parent_val) = parent_config;
+    let (child_pk_col, child_pk_vals) = child_config;
+    let pr_val = parent_val.clone();
+    verify_values_required(&[pr_val.clone()], child_table, parent_col)?;
+    verify_values_required(child_pk_vals, child_table, child_pk_col)?;
+    let input = HashMap::from([(parent_col.to_string(), pr_val)]);
     update::u_by_pk(
         conn,
-        main_table,
-        main_pk_name,
-        main_pk_vals,
+        child_table,
+        child_pk_col,
+        child_pk_vals,
         &input,
         where_q_config,
         None,
@@ -48,32 +50,33 @@ pub fn n1_by_pk(
 /// # Arguments
 ///
 /// * `conn` - the Rusqlite connection to the database
-/// * `my_name` - the name of the target records' table (child table)
-/// * `fk_name` - the column name of the foreign key that will be updated in the child record table
-/// * `new_fk_val` - the new value of the foreign key
-/// * `old_fk_val` - the old value of the foreign key that will be used to find the records to be updated.
-///                  - <b>WARNING:</b> There might be multiple records with the same foreign key value,
-///                  be careful about what this value should be
+/// * `child_table` - the name of the target records' table (child table, n in n-1)
+/// * `parent_config` - the parent-related table matching settings (1 in n-1)
+///                     - `tuple(column_name_of_parent_in_child_node_table, old_key_value_of_the_parent_node, new_key_value_of_the_parent_node)`
+///                     - <b>WARNING:</b> There might be multiple children with the same parent node,
+///                       be careful about what this value should be
+/// * `where_q_config` - the where clause and the parameters for condition matching
 pub fn n1_by_ofk(
     conn: &Connection,
-    my_name: &str,
-    (fk_name, old_fk_val, new_fk_val): (&str, &types::Value, &types::Value),
+    child_table: &str,
+    parent_config: (&str, &types::Value, &types::Value),
     where_q_config: Option<(&str, &[types::Value])>,
 ) -> anyhow::Result<()> {
-    if new_fk_val == old_fk_val {
+    let (parent_col, parent_old_val, parent_new_val) = parent_config;
+    if parent_old_val == parent_new_val {
         return Ok(());
     }
-    verify_values_required(&[new_fk_val.clone()], my_name, fk_name)?;
-    verify_values_required(&[old_fk_val.clone()], my_name, fk_name)?;
-    let input = HashMap::from([(fk_name.to_string(), new_fk_val.clone())]);
+    verify_values_required(&[parent_new_val.clone()], child_table, parent_col)?;
+    verify_values_required(&[parent_old_val.clone()], child_table, parent_col)?;
+    let input = HashMap::from([(parent_col.to_string(), parent_new_val.clone())]);
     let (where_clause, where_params) = merge_q_configs(
-        Some((&format!("{} = ?", fk_name), &[old_fk_val.clone()])),
+        Some((&format!("{} = ?", parent_col), &[parent_old_val.clone()])),
         where_q_config,
         "AND",
     )?;
     update::u_all(
         conn,
-        my_name,
+        child_table,
         &input,
         (where_clause.as_str(), where_params.as_slice()),
         None,
@@ -81,19 +84,23 @@ pub fn n1_by_ofk(
     Ok(())
 }
 
+///
+/// check if the link between the target record and the peer record exists
 fn nn_link_exists(
     conn: &Connection,
     rel_name: &str,
-    (my_fk_name, my_val): (&str, &types::Value),
-    (peer_fk_name, peer_val): (&str, &types::Value),
+    a_config: (&str, &types::Value),
+    b_config: (&str, &types::Value),
     where_q_config: Option<(&str, &[types::Value])>,
 ) -> anyhow::Result<bool> {
-    verify_values_required(&[my_val.clone()], rel_name, my_fk_name)?;
-    verify_values_required(&[peer_val.clone()], rel_name, peer_fk_name)?;
+    let (a_col, a_val) = a_config;
+    let (b_col, b_val) = b_config;
+    verify_values_required(&[a_val.clone()], rel_name, a_col)?;
+    verify_values_required(&[b_val.clone()], rel_name, b_col)?;
     let (where_clause, where_params) = merge_q_configs(
         Some((
-            format!("{} = ? AND {} = ?", my_fk_name, peer_fk_name).as_str(),
-            &[my_val.clone(), peer_val.clone()],
+            format!("{} = ? AND {} = ?", a_col, b_col).as_str(),
+            &[a_val.clone(), b_val.clone()],
         )),
         where_q_config,
         "AND",
@@ -113,43 +120,38 @@ fn nn_link_exists(
 /// # Arguments
 /// * `conn` - the Rusqlite connection to the database
 /// * `rel_name` - the name of the table that represents the n-n relationship
-/// * `my_fk_name` - the column name that references the target records in the relationship table
-/// * `my_vals` - the values of the target records that will be linked to their peers
-/// * `peer_fk_name` - the column name that references the peer records in the relationship table
-/// * `peer_vals` - the values of the peer records that will be linked to the target records
+/// * `a_config` - the table matching settings of the A side of the relationship
+///               - `tuple(column name, values_of_the_primary_key_values_of_the_records_in_this_column)`
+/// * `b_config` - the table matching settings of the B side of the relationship, similar to `a_config`
 pub fn nn(
     conn: &Connection,
     rel_name: &str,
-    (my_fk_name, my_vals): (&str, &[types::Value]),
-    (peer_fk_name, peer_vals): (&str, &[types::Value]),
+    a_config: (&str, &[types::Value]),
+    b_config: (&str, &[types::Value]),
 ) -> anyhow::Result<()> {
-    verify_values_required(my_vals, rel_name, my_fk_name)?;
-    verify_values_required(peer_vals, rel_name, peer_fk_name)?;
-    let mut deduped_my_vals = my_vals.to_vec();
-    deduped_my_vals.dedup();
+    let (a_col, a_vals) = a_config;
+    let (b_col, b_vals) = b_config;
+    verify_values_required(a_vals, rel_name, a_col)?;
+    verify_values_required(b_vals, rel_name, b_col)?;
+    let mut deduped_a_vals = a_vals.to_vec();
+    deduped_a_vals.dedup();
 
-    let mut deduped_peer_vals = peer_vals.to_vec();
-    deduped_peer_vals.dedup();
+    let mut deduped_b_vals = b_vals.to_vec();
+    deduped_b_vals.dedup();
 
-    let mut fk_pairs_to_insert = vec![];
-    for my_val in &deduped_my_vals {
-        for peer_val in &deduped_peer_vals {
-            let existed = nn_link_exists(
-                conn,
-                rel_name,
-                (my_fk_name, my_val),
-                (peer_fk_name, peer_val),
-                None,
-            )?;
+    let mut pairs_to_insert = vec![];
+    for a_val in &deduped_a_vals {
+        for b_val in &deduped_b_vals {
+            let existed = nn_link_exists(conn, rel_name, (a_col, a_val), (b_col, b_val), None)?;
             if !existed {
-                fk_pairs_to_insert.push((my_val, peer_val));
+                pairs_to_insert.push((a_val, b_val));
             }
         }
     }
-    for (my_val, peer_val) in fk_pairs_to_insert {
+    for (a_val, b_val) in pairs_to_insert {
         let input = HashMap::from([
-            (my_fk_name.to_string(), my_val.clone()),
-            (peer_fk_name.to_string(), peer_val.clone()),
+            (a_col.to_string(), a_val.clone()),
+            (b_col.to_string(), b_val.clone()),
         ]);
         crate::crud::create::i_one(conn, rel_name, &input, None)?;
     }
@@ -163,33 +165,34 @@ pub fn nn(
 /// # Arguments
 /// * `conn` - the Rusqlite connection to the database
 /// * `rel_name` - the name of the table that represents the n-n relationship
-/// * `my_fk_name` - the column name that references the target records in the relationship table
-/// * `my_vals` - the values of the target records that will be unlinked from their peers
-/// * `peer_fk_name` - the column name that references the peer records in the relationship table
-/// * `peer_vals` - the values of the peer records that will be unlinked from the target records
+/// * `a_config` - the table matching settings of the A side of the relationship
+///                - `tuple(column name, values_of_the_primary_key_values_of_the_records_in_this_column)`
+/// * `b_config` - the table matching settings of the B side of the relationship, similar to `a_config`
 ///
 pub fn d_all(
     conn: &Connection,
     rel_name: &str,
-    (my_fk_name, my_vals): (&str, &[types::Value]),
-    (peer_fk_name, peer_vals): (&str, &[types::Value]),
+    a_config: (&str, &[types::Value]),
+    b_config: (&str, &[types::Value]),
 ) -> anyhow::Result<()> {
-    verify_values_required(my_vals, rel_name, my_fk_name)?;
-    verify_values_required(peer_vals, rel_name, peer_fk_name)?;
-    let mut deduped_my_vals = my_vals.to_vec();
-    deduped_my_vals.dedup();
+    let (a_col, a_vals) = a_config;
+    let (b_col, b_vals) = b_config;
+    verify_values_required(a_vals, rel_name, a_col)?;
+    verify_values_required(b_vals, rel_name, b_col)?;
+    let mut deduped_a_vals = a_vals.to_vec();
+    deduped_a_vals.dedup();
 
-    let mut deduped_peer_vals = peer_vals.to_vec();
-    deduped_peer_vals.dedup();
+    let mut deduped_b_vals = b_vals.to_vec();
+    deduped_b_vals.dedup();
 
-    for my_val in &deduped_my_vals {
-        for peer_val in &deduped_peer_vals {
+    for a_val in &deduped_a_vals {
+        for b_val in &deduped_b_vals {
             del::d_all(
                 conn,
                 rel_name,
                 (
-                    format!("{} = ? AND {} = ?", my_fk_name, peer_fk_name).as_str(),
-                    &[my_val.clone(), peer_val.clone()],
+                    format!("{} = ? AND {} = ?", a_col, b_col).as_str(),
+                    &[a_val.clone(), b_val.clone()],
                 ),
             )?;
         }

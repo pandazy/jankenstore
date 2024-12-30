@@ -19,7 +19,7 @@ fn test_read_bonds() -> anyhow::Result<()> {
     initialize_db(&conn)?;
 
     let songs_of_artists =
-        bond::fetch::list_n_of_1(&conn, "song", "artist_id", &[v_int(5)], None, None)?;
+        bond::fetch::list_n_of_1(&conn, "song", ("artist_id", &[v_int(5)]), None, None)?;
 
     assert_eq!(songs_of_artists.len(), 2);
     assert_eq!(songs_of_artists[0].get("name"), Some(&v_txt("We Are!")));
@@ -28,8 +28,7 @@ fn test_read_bonds() -> anyhow::Result<()> {
     let albums_of_songs = bond::fetch::list_n_of_n(
         &conn,
         ("album", "id", "album_id"),
-        ("rel_album_song", "song_id"),
-        &[v_int(5)],
+        ("rel_album_song", "song_id", &[v_int(5)]),
         None,
         None,
     )?;
@@ -44,8 +43,7 @@ fn test_read_bonds() -> anyhow::Result<()> {
     let songs_of_album = bond::fetch::list_n_of_n(
         &conn,
         ("song", "id", "song_id"),
-        ("rel_album_song", "album_id"),
-        &[v_int(1)],
+        ("rel_album_song", "album_id", &[v_int(1)]),
         None,
         None,
     )?;
@@ -68,8 +66,7 @@ fn test_read_bonds() -> anyhow::Result<()> {
     let songs_of_album_with_condition = bond::fetch::list_n_of_n(
         &conn,
         ("song", "id", "song_id"),
-        ("rel_album_song", "album_id"),
-        &[v_int(1)],
+        ("rel_album_song", "album_id", &[v_int(1)]),
         Some(&["memo"]),
         Some(("artist_id = ?", &[v_int(5)])),
     )?;
@@ -133,8 +130,7 @@ fn test_relink_nn() -> anyhow::Result<()> {
     let albums_of_songs = bond::fetch::list_n_of_n(
         &conn,
         ("album", "id", "album_id"),
-        ("rel_album_song", "song_id"),
-        &[v_int(4)],
+        ("rel_album_song", "song_id", &[v_int(4)]),
         None,
         None,
     )?;
@@ -151,8 +147,7 @@ fn test_relink_nn() -> anyhow::Result<()> {
     let albums_of_songs = bond::fetch::list_n_of_n(
         &conn,
         ("album", "id", "album_id"),
-        ("rel_album_song", "song_id"),
-        &[v_int(4)],
+        ("rel_album_song", "song_id", &[v_int(4)]),
         None,
         None,
     )?;
@@ -174,8 +169,7 @@ fn test_delete_nn_bond() -> anyhow::Result<()> {
     let songs_of_albums = bond::fetch::list_n_of_n(
         &conn,
         ("song", "id", "song_id"),
-        ("rel_album_song", "album_id"),
-        &[v_int(1)],
+        ("rel_album_song", "album_id", &[v_int(1)]),
         None,
         None,
     )?;
@@ -192,8 +186,7 @@ fn test_delete_nn_bond() -> anyhow::Result<()> {
     let songs_of_albums = bond::fetch::list_n_of_n(
         &conn,
         ("song", "id", "song_id"),
-        ("rel_album_song", "album_id"),
-        &[v_int(1)],
+        ("rel_album_song", "album_id", &[v_int(1)]),
         None,
         None,
     )?;
@@ -209,7 +202,7 @@ fn test_insert_with_n1() -> anyhow::Result<()> {
     initialize_db(&conn)?;
 
     let songs_of_beetles =
-        bond::fetch::list_n_of_1(&conn, "song", "artist_id", &[v_int(3)], None, None)?;
+        bond::fetch::list_n_of_1(&conn, "song", ("artist_id", &[v_int(3)]), None, None)?;
     assert_eq!(songs_of_beetles.len(), 1);
 
     create::n1(
@@ -225,7 +218,7 @@ fn test_insert_with_n1() -> anyhow::Result<()> {
     )?;
 
     let songs_of_beetles =
-        bond::fetch::list_n_of_1(&conn, "song", "artist_id", &[v_int(3)], None, None)?;
+        bond::fetch::list_n_of_1(&conn, "song", ("artist_id", &[v_int(3)]), None, None)?;
 
     assert_eq!(songs_of_beetles.len(), 2);
     assert_eq!(
@@ -307,8 +300,7 @@ fn test_insert_with_nn() -> anyhow::Result<()> {
         let albums_of_song = bond::fetch::list_n_of_n(
             &conn,
             ("album", "id", "album_id"),
-            ("rel_album_song", "song_id"),
-            &[song_id.clone()],
+            ("rel_album_song", "song_id", &[song_id.clone()]),
             None,
             None,
         )
@@ -326,8 +318,7 @@ fn test_insert_with_nn() -> anyhow::Result<()> {
         let songs_of_album = bond::fetch::list_n_of_n(
             &conn,
             ("song", "id", "song_id"),
-            ("rel_album_song", "album_id"),
-            &[album_id.clone()],
+            ("rel_album_song", "album_id", &[album_id.clone()]),
             None,
             None,
         )
