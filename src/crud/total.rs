@@ -8,17 +8,21 @@ use rusqlite::{params_from_iter, types, Connection};
 /// # Arguments
 /// * `conn` - the Rusqlite connection to the database
 /// * `table_name` - the name of the table
-/// * `is_distinct` - whether to use the DISTINCT keyword in the SQL query
+/// * `distinct_field` - if provided, count distinct values in this field
 /// * `where_q_config` - the where clause and the parameters for the where clause
 pub fn t_all(
     conn: &Connection,
     table_name: &str,
-    is_distinct: bool,
+    distinct_field: Option<&str>,
     where_q_config: Option<(&str, &[types::Value])>,
 ) -> Result<i64> {
     verify_table_name(table_name)?;
-    let distinct_word = if is_distinct { "DISTINCT" } else { "" };
-    let sql = format!("SELECT COUNT({} *) FROM {}", distinct_word, table_name);
+    let distinct_word = if let Some(field) = distinct_field {
+        format!("DISTINCT {}", field)
+    } else {
+        String::from("*")
+    };
+    let sql = format!("SELECT COUNT({}) FROM {}", distinct_word, table_name);
     let (where_q_clause, where_q_params) = sql::standardize_q_config(where_q_config, "WHERE")?;
     let sql = format!("{} {}", sql, where_q_clause);
     let mut stmt = conn.prepare(&sql)?;
@@ -35,6 +39,7 @@ pub fn t_by_pk(
     table_name: &str,
     pk_name: &str,
     pk_values: &[types::Value],
+    distinct_field: Option<&str>,
     where_q_config: Option<(&str, &[types::Value])>,
 ) -> Result<i64> {
     let (pk_query_clause, pk_query_params) = sql::in_them(pk_name, pk_values);
@@ -44,7 +49,7 @@ pub fn t_by_pk(
     let result = t_all(
         conn,
         table_name,
-        false,
+        distinct_field,
         Some((where_q_clause.as_str(), &where_q_params)),
     )?;
     Ok(result)

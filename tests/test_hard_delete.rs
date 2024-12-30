@@ -47,7 +47,7 @@ fn test_hard_delete() -> Result<()> {
     let rows = tbl_rep.list_by_pk(&conn, &["1"].map(v_txt), None)?;
     let row = rows.first();
     assert_eq!(row, None);
-    let count = tbl_rep.count(&conn, false, None)?;
+    let count = tbl_rep.count(&conn, None, None)?;
     assert_eq!(count, 2);
 
     let rows = tbl_rep
@@ -73,7 +73,7 @@ fn test_hard_delete() -> Result<()> {
     )?;
     let count = tbl_rep.count(
         &conn,
-        false,
+        None,
         Some(("count = ?", &[types::Value::Integer(5)])),
     )?;
     assert_eq!(count, 0);

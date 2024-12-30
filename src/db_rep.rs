@@ -85,19 +85,27 @@ impl TblRep {
     pub fn count(
         &self,
         conn: &Connection,
-        is_distinct: bool,
+        distinct_field: Option<&str>,
         where_q_config: Option<(&str, &[types::Value])>,
     ) -> Result<i64> {
-        total::t_all(conn, &self.name, is_distinct, where_q_config)
+        total::t_all(conn, &self.name, distinct_field, where_q_config)
     }
 
     pub fn count_by_pk(
         &self,
         conn: &Connection,
         pk_values: &[types::Value],
+        distinct_field: Option<&str>,
         where_q_config: Option<(&str, &[types::Value])>,
     ) -> Result<i64> {
-        total::t_by_pk(conn, &self.name, &self.pk_name, pk_values, where_q_config)
+        total::t_by_pk(
+            conn,
+            &self.name,
+            &self.pk_name,
+            pk_values,
+            distinct_field,
+            where_q_config,
+        )
     }
 
     ///

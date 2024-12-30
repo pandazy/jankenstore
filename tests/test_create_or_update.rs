@@ -136,12 +136,12 @@ fn test_fetching_by_multiple_primary_keys() -> Result<()> {
     });
     let rows = tbl_rep.list_by_pk(&conn, &["0", "1", "2"].map(v_txt), None)?;
     assert_eq!(rows.len(), 3);
-    let count = tbl_rep.count_by_pk(&conn, &["0", "1", "2"].map(v_txt), None)?;
+    let count = tbl_rep.count_by_pk(&conn, &["0", "1", "2"].map(v_txt), None, None)?;
     assert_eq!(count, 3);
 
     let rows = tbl_rep.list_by_pk(&conn, &["0", "1", "2", "3", "4"].map(v_txt), None)?;
     assert_eq!(rows.len(), 5);
-    let count = tbl_rep.count_by_pk(&conn, &["0", "1", "2", "3", "4"].map(v_txt), None)?;
+    let count = tbl_rep.count_by_pk(&conn, &["0", "1", "2", "3", "4"].map(v_txt), None, None)?;
     assert_eq!(count, 5);
 
     let rows_by_condition = tbl_rep.list_by_pk(
@@ -153,6 +153,7 @@ fn test_fetching_by_multiple_primary_keys() -> Result<()> {
     let count_by_condition = tbl_rep.count_by_pk(
         &conn,
         &["0", "1", "2", "3", "4"].map(v_txt),
+        None,
         Some(("count = ?", &[types::Value::Integer(3)])),
     )?;
     assert_eq!(count_by_condition, 2);

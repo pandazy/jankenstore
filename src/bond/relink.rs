@@ -101,7 +101,7 @@ fn nn_link_exists(
     let count = total::t_all(
         conn,
         rel_name,
-        false,
+        None,
         Some((where_clause.as_str(), where_params.as_slice())),
     )?;
     Ok(count > 0)
