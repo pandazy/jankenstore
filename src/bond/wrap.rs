@@ -196,8 +196,8 @@ impl<'a> NnWrap<'a> {
         super::relink::d_all(conn, rel_name, (a_col, a_vals), (b_col, b_vals))
     }
 
-    fn conf_pair<'b>(
-        &'b self,
+    fn conf_pair<'b: 'a>(
+        &'a self,
         rep: &'b TblRep,
         peers: &'b [types::Value],
         is_write: bool,
