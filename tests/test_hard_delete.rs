@@ -1,4 +1,4 @@
-use jankenstore::UnitResource;
+use jankenstore::{crud::shift::val::v_txt, TblRep};
 
 use anyhow::Result;
 use rusqlite::{types, Connection};
@@ -12,7 +12,7 @@ fn test_hard_delete() -> Result<()> {
         [],
     )
     .unwrap();
-    let resource = UnitResource::new(
+    let tbl_rep = TblRep::new(
         "test",
         "id",
         &[
@@ -26,35 +26,35 @@ fn test_hard_delete() -> Result<()> {
         ("id".to_string(), types::Value::Integer(1)),
         ("name".to_string(), types::Value::Text("test".to_string())),
     ]);
-    resource.insert(&conn, &input, true).unwrap();
+    tbl_rep.insert(&conn, &input, true).unwrap();
 
     let input = HashMap::from([
         ("id".to_string(), types::Value::Integer(2)),
         ("name".to_string(), types::Value::Text("test2".to_string())),
         ("count".to_string(), types::Value::Integer(6)),
     ]);
-    resource.insert(&conn, &input, true).unwrap();
+    tbl_rep.insert(&conn, &input, true).unwrap();
 
     let input = HashMap::from([
         ("id".to_string(), types::Value::Integer(3)),
         ("name".to_string(), types::Value::Text("test3".to_string())),
     ]);
-    resource.insert(&conn, &input, true).unwrap();
+    tbl_rep.insert(&conn, &input, true).unwrap();
 
-    let rows = resource.fetch_all(&conn, false, None, None).unwrap();
+    let rows = tbl_rep.list(&conn, None, (false, None)).unwrap();
     assert_eq!(rows.len(), 3);
-    resource.hard_del(&conn, "1", None).unwrap();
-    let row = resource.fetch_one(&conn, "1", None).unwrap();
+    tbl_rep.del_by_pk(&conn, &["1"].map(v_txt), None).unwrap();
+    let rows = tbl_rep.list_by_pk(&conn, &["1"].map(v_txt), None)?;
+    let row = rows.first();
     assert_eq!(row, None);
-    let rows = resource.fetch_all(&conn, false, None, None).unwrap();
-    assert_eq!(rows.len(), 2);
+    let count = tbl_rep.count(&conn, None, None)?;
+    assert_eq!(count, 2);
 
-    let rows = resource
-        .fetch_all(
+    let rows = tbl_rep
+        .list(
             &conn,
-            false,
-            None,
             Some(("id = ?", &[types::Value::Integer(2)])),
+            (false, None),
         )
         .unwrap();
     assert_eq!(rows.len(), 1);
@@ -65,9 +65,19 @@ fn test_hard_delete() -> Result<()> {
         _ => panic!("Unexpected value"),
     }
 
-    let row = resource
-        .fetch_one(&conn, "2", Some(("count = ?", &[types::Value::Integer(5)])))
-        .unwrap();
+    let rows = tbl_rep.list_by_pk(
+        &conn,
+        &["2"].map(v_txt),
+        Some(("count = ?", &[types::Value::Integer(5)])),
+    )?;
+    let count = tbl_rep.count(
+        &conn,
+        None,
+        Some(("count = ?", &[types::Value::Integer(5)])),
+    )?;
+    assert_eq!(count, 0);
+
+    let row = rows.first();
     assert_eq!(row, None);
 
     Ok(())

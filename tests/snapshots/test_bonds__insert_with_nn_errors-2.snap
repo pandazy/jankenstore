@@ -1,0 +1,6 @@
+---
+source: tests/test_bonds.rs
+expression: empty_fk_error.to_string()
+---
+(table: rel_album_song) At least 1 value for 'album_id' is required for this operation, and none of them can be an empty string
+But here are received values: []

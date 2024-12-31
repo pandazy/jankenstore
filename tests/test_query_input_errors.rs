@@ -1,4 +1,7 @@
-use jankenstore::{crud::fetch_all, UnitResource};
+use jankenstore::{
+    crud::{fetch, shift::val::v_txt},
+    TblRep,
+};
 
 use anyhow::Result;
 use insta::assert_snapshot;
@@ -12,7 +15,7 @@ fn test_query_input_errors() -> Result<()> {
         "CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT NOT NULL, count INTEGER DEFAULT 2)",
         [],
     )?;
-    let resource = UnitResource::new(
+    let tbl_rep = TblRep::new(
         "test",
         "id",
         &[
@@ -27,32 +30,32 @@ fn test_query_input_errors() -> Result<()> {
         ("id".to_string(), types::Value::Integer(1)),
         ("name".to_string(), types::Value::Text("test".to_string())),
     ]);
-    resource.insert(&conn, &input, true)?;
+    tbl_rep.insert(&conn, &input, true)?;
 
     let input = HashMap::from([
         ("id".to_string(), types::Value::Integer(2)),
         ("name".to_string(), types::Value::Text("test2".to_string())),
         ("count".to_string(), types::Value::Integer(6)),
     ]);
-    resource.insert(&conn, &input, true)?;
+    tbl_rep.insert(&conn, &input, true)?;
 
     let input = HashMap::from([
         ("id".to_string(), types::Value::Integer(3)),
         ("name".to_string(), types::Value::Text("test3".to_string())),
     ]);
-    resource.insert(&conn, &input, true)?;
+    tbl_rep.insert(&conn, &input, true)?;
 
-    let no_table_name_err = fetch_all(&conn, "", false, None, None).err().unwrap();
+    let no_table_name_err = fetch::f_all(&conn, "", None, (false, None)).err().unwrap();
     assert_eq!(
         no_table_name_err.to_string(),
         "The table name cannot be an empty string"
     );
 
-    let query = resource.fetch_all(&conn, false, None, None)?;
+    let query = tbl_rep.list(&conn, None, (false, None))?;
     assert_eq!(query.len(), 3);
 
-    let no_where_clause_err = resource
-        .fetch_one(&conn, "2", Some(("", &[])))
+    let no_where_clause_err = tbl_rep
+        .list_by_pk(&conn, &["2"].map(v_txt), Some(("", &[])))
         .err()
         .unwrap();
     assert_snapshot!(no_where_clause_err.to_string());
@@ -67,7 +70,7 @@ fn test_write_op_query_errors() -> Result<()> {
         "CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT NOT NULL, count INTEGER DEFAULT 2)",
         [],
     )?;
-    let resource = UnitResource::new(
+    let tbl_rep = TblRep::new(
         "test",
         "id",
         &[
@@ -82,17 +85,33 @@ fn test_write_op_query_errors() -> Result<()> {
         ("id".to_string(), types::Value::Integer(1)),
         ("name".to_string(), types::Value::Text("test".to_string())),
     ]);
-    let update_where_err = resource
-        .update(&conn, "1", &input, Some(("", &[])))
+    let update_where_err = tbl_rep
+        .upd_by_pk(&conn, &["1"].map(v_txt), &input, Some(("", &[])))
         .err()
         .unwrap();
     assert_snapshot!(update_where_err.to_string());
 
-    let delete_error = resource
-        .hard_del(&conn, "1", Some(("", &[])))
+    let delete_error = tbl_rep
+        .del_by_pk(&conn, &["1"].map(v_txt), Some(("", &[])))
         .err()
         .unwrap();
     assert_snapshot!(delete_error.to_string());
+
+    let delete_error = tbl_rep.del_by_pk(&conn, &[], None).err().unwrap();
+    assert_snapshot!(delete_error.to_string());
+
+    let delete_error = tbl_rep
+        .del_by_pk(&conn, &["1", "", "3"].map(v_txt), None)
+        .err()
+        .unwrap();
+    assert_snapshot!(delete_error.to_string());
+
+    let delete_error = tbl_rep
+        .del_by_pk(&conn, &["1", " ", "3"].map(v_txt), None)
+        .err()
+        .unwrap();
+    assert_snapshot!(delete_error.to_string());
+
     Ok(())
 }
 
@@ -104,7 +123,7 @@ fn test_invalid_inputs() -> Result<()> {
         [],
     )?;
 
-    let problematic_resource_error = UnitResource::new(
+    let problematic_tbl_rep_error = TblRep::new(
         "test",
         "id",
         &[
@@ -116,9 +135,9 @@ fn test_invalid_inputs() -> Result<()> {
     )
     .err()
     .unwrap();
-    assert_snapshot!(problematic_resource_error.to_string());
+    assert_snapshot!(problematic_tbl_rep_error.to_string());
 
-    let resource = UnitResource::new(
+    let tbl_rep = TblRep::new(
         "test",
         "id",
         &[
@@ -133,7 +152,7 @@ fn test_invalid_inputs() -> Result<()> {
         ("id".to_string(), types::Value::Text("abc".to_string())),
         ("name".to_string(), types::Value::Text("test".to_string())),
     ]);
-    let mismatch_err = resource.insert(&conn, &input, true).err().unwrap();
+    let mismatch_err = tbl_rep.insert(&conn, &input, true).err().unwrap();
     assert_snapshot!(mismatch_err.to_string());
 
     let input = HashMap::from([
@@ -143,7 +162,7 @@ fn test_invalid_inputs() -> Result<()> {
             types::Value::Blob("test".as_bytes().to_vec()),
         ),
     ]);
-    let mismatch_blob_err = resource.insert(&conn, &input, true).err().unwrap();
+    let mismatch_blob_err = tbl_rep.insert(&conn, &input, true).err().unwrap();
     assert_snapshot!(mismatch_blob_err.to_string());
 
     let input = HashMap::from([
@@ -151,11 +170,11 @@ fn test_invalid_inputs() -> Result<()> {
         ("name".to_string(), types::Value::Text("test".to_string())),
         ("count".to_string(), types::Value::Real(2.0)),
     ]);
-    let mismatch_real_err = resource.insert(&conn, &input, true).err().unwrap();
+    let mismatch_real_err = tbl_rep.insert(&conn, &input, true).err().unwrap();
     assert_snapshot!(mismatch_real_err.to_string());
 
     let input = HashMap::new();
-    let err = resource.insert(&conn, &input, false);
+    let err = tbl_rep.insert(&conn, &input, false);
     assert_eq!(
         err.err().unwrap().to_string(),
         "(table: test) The input has no items"
@@ -166,7 +185,7 @@ fn test_invalid_inputs() -> Result<()> {
         ("name".to_string(), types::Value::Text("test".to_string())),
         ("age".to_string(), types::Value::Integer(18)),
     ]);
-    let err = resource.insert(&conn, &input, true).err().unwrap();
+    let err = tbl_rep.insert(&conn, &input, true).err().unwrap();
     assert_eq!(
         err.to_string(),
         "(table: test) The input has a key 'age' that is not allowed"
@@ -174,20 +193,29 @@ fn test_invalid_inputs() -> Result<()> {
 
     let input = HashMap::from([("id".to_string(), types::Value::Integer(1))]);
 
-    let no_required_name_err = resource.insert(&conn, &input, true).err().unwrap();
+    let no_required_name_err = tbl_rep.insert(&conn, &input, true).err().unwrap();
     assert_eq!(
         no_required_name_err.to_string(),
         "(table: test) The input requires the value of 'name'"
     );
 
-    let input = HashMap::from([("name".to_string(), types::Value::Text("".to_string()))]);
-    let no_required_name_err_for_empty = resource.update(&conn, "1", &input, None).err().unwrap();
+    let input: HashMap<String, types::Value> =
+        HashMap::from([("name".to_string(), types::Value::Text("".to_string()))]);
+    let no_required_name_err_for_empty = tbl_rep
+        .upd_by_pk(&conn, &["1"].map(v_txt), &input, None)
+        .err()
+        .unwrap();
     assert_eq!(
         no_required_name_err_for_empty.to_string(),
         "(table: test) The input requires the value of 'name'"
     );
 
-    let blob_resource = UnitResource::new(
+    let input: HashMap<String, types::Value> =
+        HashMap::from([("name".to_string(), types::Value::Text("alice".to_string()))]);
+    let empty_pk_error = tbl_rep.upd_by_pk(&conn, &[], &input, None).err().unwrap();
+    assert_snapshot!(empty_pk_error.to_string());
+
+    let blob_tbl_rep = TblRep::new(
         "test",
         "id",
         &[
@@ -204,8 +232,8 @@ fn test_invalid_inputs() -> Result<()> {
         ("name".to_string(), types::Value::Text("test".to_string())),
         ("data".to_string(), types::Value::Blob(vec![])),
     ]);
-    let no_required_blob_err_for_empty = blob_resource
-        .update(&conn, "1", &input, None)
+    let no_required_blob_err_for_empty = blob_tbl_rep
+        .upd_by_pk(&conn, &["1"].map(v_txt), &input, None)
         .err()
         .unwrap();
     assert_eq!(

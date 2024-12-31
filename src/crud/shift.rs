@@ -1,4 +1,3 @@
-use crate::verify::verify_where_clause;
 use anyhow::{anyhow, Result};
 use rusqlite::{types, Row};
 use std::collections::HashMap;
@@ -40,18 +39,36 @@ pub fn val_to_json(map: &HashMap<String, types::Value>) -> Result<serde_json::Va
     Ok(serde_json::Value::Object(json_map))
 }
 
-pub fn standardize_where_items(
-    where_input: Option<(&str, &[types::Value])>,
-    link_word: &str,
-) -> Result<(String, Vec<types::Value>)> {
-    match where_input {
-        Some((where_clause, where_params)) => {
-            verify_where_clause(where_clause)?;
-            Ok((
-                format!("{} {}", link_word, where_clause),
-                where_params.to_vec(),
-            ))
-        }
-        None => Ok(("".to_string(), vec![])),
+pub mod val {
+    use rusqlite::types;
+
+    pub fn v_txt(id: &str) -> types::Value {
+        types::Value::Text(id.to_string())
+    }
+
+    pub fn v_int(id: i64) -> types::Value {
+        types::Value::Integer(id)
+    }
+
+    pub fn v_flo(id: f64) -> types::Value {
+        types::Value::Real(id)
+    }
+
+    pub fn v_blo(id: &[u8]) -> types::Value {
+        types::Value::Blob(id.to_vec())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::val;
+    use rusqlite::types;
+
+    #[test]
+    fn test_val_converts() {
+        assert_eq!(val::v_txt("test"), types::Value::Text("test".to_string()));
+        assert_eq!(val::v_int(1), types::Value::Integer(1));
+        assert_eq!(val::v_flo(1.0), types::Value::Real(1.0));
+        assert_eq!(val::v_blo(&[1, 2, 3]), types::Value::Blob(vec![1, 2, 3]));
     }
 }
