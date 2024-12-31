@@ -3,79 +3,133 @@ use std::collections::HashMap;
 use helpers::initialize_db;
 use insta::assert_snapshot;
 use jankenstore::{
-    bond::{self, create, relink},
+    bond::{
+        self, create, relink,
+        wrap::{N1Wrap, NnWrap},
+    },
     crud::{
         self, fetch,
         shift::val::{v_int, v_txt},
     },
+    TblRep,
 };
 mod helpers;
 
 use rusqlite::Connection;
+use serde::{Deserialize, Serialize};
+
+fn get_infos() -> anyhow::Result<(TblRep, TblRep, TblRep)> {
+    let artist_rep = TblRep::new(
+        "artist",
+        "id",
+        &[("id", v_int(0)), ("name", v_txt(""))],
+        &["name"],
+    )?;
+    let song_rep = TblRep::new(
+        "song",
+        "id",
+        &[
+            ("id", v_int(0)),
+            ("name", v_txt("")),
+            ("artist_id", v_int(0)),
+            ("memo", v_txt("")),
+        ],
+        &["name", "artist_id"],
+    )?;
+
+    let album_rep = TblRep::new(
+        "album",
+        "id",
+        &[("id", v_int(0)), ("name", v_txt(""))],
+        &["name"],
+    )?;
+
+    Ok((artist_rep, song_rep, album_rep))
+}
+
+fn get_wraps<'a>(
+    (artist_rep, song_rep, album_rep): (&'a TblRep, &'a TblRep, &'a TblRep),
+) -> anyhow::Result<(N1Wrap<'a>, NnWrap<'a>)> {
+    let n1_wrap = N1Wrap::new((song_rep, "artist_id"), artist_rep);
+    let n2_wrap = NnWrap::new(
+        song_rep,
+        album_rep,
+        ("rel_album_song", "song_id", "album_id"),
+    );
+
+    Ok((n1_wrap, n2_wrap))
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct Artist {
+    id: i64,
+    name: String,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct Song {
+    id: i64,
+    name: String,
+    artist_id: i64,
+    memo: String,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct Album {
+    id: i64,
+    name: String,
+}
 
 #[test]
 fn test_read_bonds() -> anyhow::Result<()> {
     let conn = Connection::open_in_memory()?;
     initialize_db(&conn)?;
+    let (artist_rep, song_rep, album_rep) = get_infos()?;
+    let (songs_artists_n1, songs_albums_nn) = get_wraps((&artist_rep, &song_rep, &album_rep))?;
+    assert_eq!(songs_artists_n1.get_tn().get_name(), "song");
+    assert_eq!(songs_artists_n1.get_t1().get_name(), "artist");
+    assert_eq!(songs_albums_nn.get_t1().get_name(), "song");
+    assert_eq!(songs_albums_nn.get_t2().get_name(), "album");
 
-    let songs_of_artists =
-        bond::fetch::list_n_of_1(&conn, "song", ("artist_id", &[v_int(5)]), None, None)?;
+    let songs_of_artists_raw = songs_artists_n1.list_kids(&conn, &[v_int(5)], None, None)?;
+    assert_eq!(songs_of_artists_raw.len(), 2);
+
+    let songs_of_artists = songs_artists_n1.list_kids_as::<Song>(&conn, &[v_int(5)], None, None)?;
 
     assert_eq!(songs_of_artists.len(), 2);
-    assert_eq!(songs_of_artists[0].get("name"), Some(&v_txt("We Are!")));
-    assert_eq!(songs_of_artists[1].get("name"), Some(&v_txt("We Go!")));
+    assert_eq!(songs_of_artists[0].name, "We Are!");
+    assert_eq!(songs_of_artists[1].name, "We Go!");
 
-    let albums_of_songs = bond::fetch::list_n_of_n(
-        &conn,
-        ("album", "id", "album_id"),
-        ("rel_album_song", "song_id", &[v_int(5)]),
-        None,
-        None,
-    )?;
+    let albums_of_songs_raw = songs_albums_nn.peers_of_t2(&conn, &[v_int(5)], None, None)?;
+    assert_eq!(albums_of_songs_raw.len(), 2);
+
+    let albums_of_songs =
+        songs_albums_nn.peers_of_t2_as::<Album>(&conn, &[v_int(5)], None, None)?;
 
     assert_eq!(albums_of_songs.len(), 2);
-    assert_eq!(albums_of_songs[0].get("name"), Some(&v_txt("Old Songs 1")));
-    assert_eq!(
-        albums_of_songs[1].get("name"),
-        Some(&v_txt("Anime Songs 1"))
-    );
+    assert_eq!(albums_of_songs[0].name, "Old Songs 1");
+    assert_eq!(albums_of_songs[1].name, "Anime Songs 1");
 
-    let songs_of_album = bond::fetch::list_n_of_n(
-        &conn,
-        ("song", "id", "song_id"),
-        ("rel_album_song", "album_id", &[v_int(1)]),
-        None,
-        None,
-    )?;
+    let songs_of_albums_raw = songs_albums_nn.peers_of_t1(&conn, &[v_int(1)], None, None)?;
+    assert_eq!(songs_of_albums_raw.len(), 4);
+
+    let songs_of_album = songs_albums_nn.peers_of_t1_as::<Song>(&conn, &[v_int(1)], None, None)?;
 
     assert_eq!(songs_of_album.len(), 4);
-    assert_eq!(
-        songs_of_album[0].get("name"),
-        Some(&v_txt("When the Saints Go Marching In"))
-    );
-    assert_eq!(
-        songs_of_album[1].get("name"),
-        Some(&v_txt("Scarborough Fair / Canticle"))
-    );
-    assert_eq!(
-        songs_of_album[2].get("name"),
-        Some(&v_txt("A Hard Day's Night"))
-    );
-    assert_eq!(songs_of_album[3].get("name"), Some(&v_txt("We Are!")));
+    assert_eq!(songs_of_album[0].name, "When the Saints Go Marching In");
+    assert_eq!(songs_of_album[1].name, "Scarborough Fair / Canticle");
+    assert_eq!(songs_of_album[2].name, "A Hard Day's Night");
+    assert_eq!(songs_of_album[3].name, "We Are!");
 
-    let songs_of_album_with_condition = bond::fetch::list_n_of_n(
+    let songs_of_album_with_condition = songs_albums_nn.peers_of_t1_as::<Song>(
         &conn,
-        ("song", "id", "song_id"),
-        ("rel_album_song", "album_id", &[v_int(1)]),
-        Some(&["memo"]),
+        &[v_int(1)],
+        Some(&["id", "name", "artist_id", "memo"]),
         Some(("artist_id = ?", &[v_int(5)])),
     )?;
 
     assert_eq!(songs_of_album_with_condition.len(), 1);
-    assert_eq!(
-        songs_of_album_with_condition[0].get("memo"),
-        Some(&v_txt("90s"))
-    );
+    assert_eq!(songs_of_album_with_condition[0].memo, "90s");
 
     Ok(())
 }
@@ -106,15 +160,17 @@ fn test_relink_by_id() -> anyhow::Result<()> {
 fn test_relink_by_old_fk() -> anyhow::Result<()> {
     let conn = Connection::open_in_memory()?;
     initialize_db(&conn)?;
+    let (artist_rep, song_rep, album_rep) = get_infos()?;
+    let (songs_artists_n1, _) = get_wraps((&artist_rep, &song_rep, &album_rep))?;
 
     let songs = fetch::f_by_pk(&conn, "song", ("id", &[v_int(4)]), None, None)?;
     assert_eq!(songs[0].get("artist_id"), Some(&v_int(4)));
 
     // do nothing if the same artist
-    relink::n1_by_ofk(&conn, "song", ("artist_id", &v_int(4), &v_int(4)), None)?;
+    songs_artists_n1.relink(&conn, &v_int(4), &v_int(4), None)?;
 
     // only change if the artist is different
-    relink::n1_by_ofk(&conn, "song", ("artist_id", &v_int(4), &v_int(1)), None)?;
+    songs_artists_n1.relink(&conn, &v_int(4), &v_int(1), None)?;
 
     let songs = fetch::f_by_pk(&conn, "song", ("id", &[v_int(4)]), None, None)?;
     assert_eq!(songs[0].get("artist_id"), Some(&v_int(1)));
@@ -127,22 +183,13 @@ fn test_relink_nn() -> anyhow::Result<()> {
     let conn = Connection::open_in_memory()?;
     initialize_db(&conn)?;
 
-    let albums_of_songs = bond::fetch::list_n_of_n(
-        &conn,
-        ("album", "id", "album_id"),
-        ("rel_album_song", "song_id", &[v_int(4)]),
-        None,
-        None,
-    )?;
+    let (artist_rep, song_rep, album_rep) = get_infos()?;
+    let (_, songs_albums_nn) = get_wraps((&artist_rep, &song_rep, &album_rep))?;
 
+    let albums_of_songs = songs_albums_nn.peers_of_t2(&conn, &[v_int(4)], None, None)?;
     assert_eq!(albums_of_songs.len(), 0);
 
-    relink::nn(
-        &conn,
-        "rel_album_song",
-        ("album_id", &[v_int(2)]),
-        ("song_id", &[v_int(4)]),
-    )?;
+    songs_albums_nn.link(&conn, &[v_int(4)], &[v_int(2)])?;
 
     let albums_of_songs = bond::fetch::list_n_of_n(
         &conn,
@@ -166,6 +213,9 @@ fn test_delete_nn_bond() -> anyhow::Result<()> {
     let conn = Connection::open_in_memory()?;
     initialize_db(&conn)?;
 
+    let (artist_rep, song_rep, album_rep) = get_infos()?;
+    let (_, songs_albums_nn) = get_wraps((&artist_rep, &song_rep, &album_rep))?;
+
     let songs_of_albums = bond::fetch::list_n_of_n(
         &conn,
         ("song", "id", "song_id"),
@@ -176,11 +226,10 @@ fn test_delete_nn_bond() -> anyhow::Result<()> {
 
     assert_eq!(songs_of_albums.len(), 4);
 
-    relink::d_all(
+    songs_albums_nn.unlink(
         &conn,
-        "rel_album_song",
-        ("song_id", &[v_int(1), v_int(2), v_int(3), v_int(5)]),
-        ("album_id", &[v_int(1)]),
+        &[v_int(1), v_int(2), v_int(3), v_int(5)],
+        &[v_int(1)],
     )?;
 
     let songs_of_albums = bond::fetch::list_n_of_n(
@@ -201,14 +250,15 @@ fn test_insert_with_n1() -> anyhow::Result<()> {
     let conn = Connection::open_in_memory()?;
     initialize_db(&conn)?;
 
-    let songs_of_beetles =
-        bond::fetch::list_n_of_1(&conn, "song", ("artist_id", &[v_int(3)]), None, None)?;
+    let (artist_rep, song_rep, album_rep) = get_infos()?;
+    let (songs_artists_n1, _) = get_wraps((&artist_rep, &song_rep, &album_rep))?;
+
+    let songs_of_beetles = songs_artists_n1.list_kids_as::<Song>(&conn, &[v_int(3)], None, None)?;
     assert_eq!(songs_of_beetles.len(), 1);
 
-    create::n1(
+    songs_artists_n1.ins(
         &conn,
-        "song",
-        ("artist_id", &v_int(3)),
+        &v_int(3),
         &HashMap::from([
             ("id".to_string(), v_int(7)),
             ("name".to_string(), v_txt("Yellow Submarine")),
@@ -237,6 +287,8 @@ fn test_insert_with_n1() -> anyhow::Result<()> {
 fn test_insert_with_nn() -> anyhow::Result<()> {
     let conn = Connection::open_in_memory()?;
     initialize_db(&conn)?;
+    let (artist_rep, song_rep, album_rep) = get_infos()?;
+    let (_, songs_albums_nn) = get_wraps((&artist_rep, &song_rep, &album_rep))?;
 
     let new_artist = HashMap::from([
         ("id".to_string(), v_int(6)),
@@ -259,8 +311,7 @@ fn test_insert_with_nn() -> anyhow::Result<()> {
         crud::create::i_one(&conn, "album", &new_album, None)?;
     }
 
-    // create bonds
-    create::nn(
+    songs_albums_nn.ins_t1(
         &conn,
         &HashMap::from([
             ("id".to_string(), v_int(8)),
@@ -268,17 +319,11 @@ fn test_insert_with_nn() -> anyhow::Result<()> {
             ("artist_id".to_string(), v_int(6)),
             ("memo".to_string(), v_txt("Fall 2024")),
         ]),
-        ("song", "id"),
-        (
-            "rel_album_song",
-            "album_id",
-            "song_id",
-            &[v_int(3), v_int(4)],
-        ),
+        &[v_int(3), v_int(4)],
         None,
     )?;
 
-    create::nn(
+    songs_albums_nn.ins_t1(
         &conn,
         &HashMap::from([
             ("id".to_string(), v_int(9)),
@@ -286,13 +331,7 @@ fn test_insert_with_nn() -> anyhow::Result<()> {
             ("artist_id".to_string(), v_int(6)),
             ("memo".to_string(), v_txt("Spring 2024")),
         ]),
-        ("song", "id"),
-        (
-            "rel_album_song",
-            "album_id",
-            "song_id",
-            &[v_int(3), v_int(4)],
-        ),
+        &[v_int(3), v_int(4)],
         None,
     )?;
 
@@ -331,6 +370,21 @@ fn test_insert_with_nn() -> anyhow::Result<()> {
             Some(&v_txt("Shouted Serenade"))
         );
     });
+
+    songs_albums_nn.ins_t2(
+        &conn,
+        &HashMap::from([
+            ("id".to_string(), v_int(10)),
+            ("name".to_string(), v_txt("Spring 2024 Songs")),
+        ]),
+        &[v_int(9)],
+        None,
+    )?;
+
+    let songs_of_album = songs_albums_nn.peers_of_t1_as::<Song>(&conn, &[v_int(10)], None, None)?;
+
+    assert_eq!(songs_of_album.len(), 1);
+    assert_eq!(songs_of_album[0].name, "Shouted Serenade");
 
     Ok(())
 }

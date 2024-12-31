@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 
 use rusqlite::{types, Connection};
+use serde::de::DeserializeOwned;
+use serde_json::from_value;
 
-use crate::crud::{fetch, sql};
+use crate::crud::{fetch, shift, sql};
 
 fn get_peer_matching_clause(
     rel_name: &str,
@@ -53,6 +55,21 @@ pub fn list_n_of_1(
     Ok(result)
 }
 
+pub fn list_n_of_1_as<T: DeserializeOwned>(
+    conn: &Connection,
+    child_table: &str,
+    parent_config: (&str, &[types::Value]),
+    d_fields: Option<&[&str]>,
+    where_conf: Option<(&str, &[types::Value])>,
+) -> anyhow::Result<Vec<T>> {
+    let result = list_n_of_1(conn, child_table, parent_config, d_fields, where_conf)?;
+    let mut result_as = Vec::new();
+    for row in result {
+        result_as.push(from_value(shift::val_to_json(&row)?)?);
+    }
+    Ok(result_as)
+}
+
 ///
 /// fetch all matching records from the main table
 /// where the related records are in the given list.
@@ -101,4 +118,19 @@ pub fn list_n_of_n(
         (false, display_fields),
     )?;
     Ok(result)
+}
+
+pub fn list_n_of_n_as<T: DeserializeOwned>(
+    conn: &Connection,
+    info_config: (&str, &str, &str),
+    rel_config: (&str, &str, &[types::Value]),
+    d_fields: Option<&[&str]>,
+    where_conf: Option<(&str, &[types::Value])>,
+) -> anyhow::Result<Vec<T>> {
+    let result = list_n_of_n(conn, info_config, rel_config, d_fields, where_conf)?;
+    let mut result_as = Vec::new();
+    for row in result {
+        result_as.push(from_value(shift::val_to_json(&row)?)?);
+    }
+    Ok(result_as)
 }
