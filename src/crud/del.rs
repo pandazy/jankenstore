@@ -1,5 +1,5 @@
 use super::{
-    sql,
+    sql::{self, WhereConfig},
     verify::{verify_table_name, verify_values_required},
 };
 
@@ -19,7 +19,7 @@ use rusqlite::{params_from_iter, types, Connection};
 pub fn d_all(
     conn: &Connection,
     table_name: &str,
-    where_q_config: (&str, &[types::Value]),
+    where_q_config: WhereConfig,
 ) -> anyhow::Result<()> {
     verify_table_name(table_name)?;
     let (where_clause, where_params) = sql::standardize_q_config(Some(where_q_config), "WHERE")?;
@@ -43,7 +43,7 @@ pub fn d_by_pk(
     table_name: &str,
     pk_name: &str,
     pk_values: &[types::Value],
-    where_q_config: Option<(&str, &[types::Value])>,
+    where_q_config: Option<WhereConfig>,
 ) -> anyhow::Result<()> {
     verify_values_required(pk_values, table_name, pk_name)?;
     verify_table_name(table_name)?;
