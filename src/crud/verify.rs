@@ -184,22 +184,61 @@ fn defaults_if_absent(
 ) -> HashMap<String, types::Value> {
     let mut ret = defaults.clone();
     for (key, value) in input {
-        ret.insert(key.clone(), value.clone());
+        let new_val = if is_empty(value) {
+            match defaults.get(key) {
+                Some(default_value) => default_value.clone(),
+                None => value.clone(),
+            }
+        } else {
+            value.clone()
+        };
+        ret.insert(key.clone(), new_val);
     }
     ret
 }
 
+/// Make a record based on an input,
+/// if a field is empty, the default value is used if available
+fn inputs_filled_with_defaults(
+    defaults: &HashMap<String, types::Value>,
+    input: &HashMap<String, types::Value>,
+) -> HashMap<String, types::Value> {
+    let mut ret = input.clone();
+    for (key, value) in input {
+        ret.insert(
+            key.clone(),
+            if is_empty(value) && defaults.contains_key(key) {
+                defaults[key].clone()
+            } else {
+                value.clone()
+            },
+        );
+    }
+    ret
+}
+
+/// The options for verification
+/// * `defaults` - the default values for all the columns that will be operated on
+/// * `required_fields` - the names of fields that cannot be left unspecified
+/// * `use_default_if_absent` - whether to use the default value if a field is absent or with an empty value
+pub type VerifyConfig<'a> = (&'a HashMap<String, types::Value>, &'a HashSet<String>, bool);
+
 /// Get the verified insert inputs for the table, see also:
 /// - [`verify_basic_write_ops`]
 /// - [`verify_required_fields_for_write_ops`]
-pub fn get_verified_insert_inputs(
+pub fn get_verified_write_inputs(
+    is_insert: bool,
     table_name: &str,
     input: &HashMap<String, types::Value>,
-    verification_options: Option<(&HashMap<String, types::Value>, &HashSet<String>, bool)>,
+    verification_options: Option<VerifyConfig>,
 ) -> Result<HashMap<String, types::Value>> {
     if let Some((defaults, required_fields, default_if_absent)) = verification_options {
         let input_before_verify = if default_if_absent {
-            defaults_if_absent(defaults, input)
+            if is_insert {
+                defaults_if_absent(defaults, input)
+            } else {
+                inputs_filled_with_defaults(defaults, input)
+            }
         } else {
             input.clone()
         };
@@ -208,7 +247,7 @@ pub fn get_verified_insert_inputs(
             table_name,
             required_fields,
             defaults,
-            true,
+            is_insert,
         )?;
         Ok(input_before_verify)
     } else {

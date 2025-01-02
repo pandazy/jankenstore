@@ -1,6 +1,6 @@
 use super::{
     shift::{self, row_to_map},
-    sql,
+    sql::{self, WhereConfig},
     verify::verify_table_name,
 };
 
@@ -21,7 +21,7 @@ use std::collections::HashMap;
 pub fn f_all(
     conn: &Connection,
     table_name: &str,
-    where_q_config: Option<(&str, &[types::Value])>,
+    where_q_config: Option<WhereConfig>,
     (is_distinct, display_fields): (bool, Option<&[&str]>),
 ) -> Result<Vec<HashMap<String, types::Value>>> {
     verify_table_name(table_name)?;
@@ -67,7 +67,7 @@ pub fn f_by_pk(
     conn: &Connection,
     table_name: &str,
     (pk_name, pk_values): (&str, &[types::Value]),
-    where_q_config: Option<(&str, &[types::Value])>,
+    where_q_config: Option<WhereConfig>,
     display_fields: Option<&[&str]>,
 ) -> Result<Vec<HashMap<String, types::Value>>> {
     let (pk_find_clause, pk_find_params) = sql::in_them(pk_name, pk_values);
@@ -87,7 +87,7 @@ pub fn f_by_pk_as<T: DeserializeOwned>(
     conn: &Connection,
     table_name: &str,
     pk_config: (&str, &[types::Value]),
-    where_q_config: Option<(&str, &[types::Value])>,
+    where_q_config: Option<WhereConfig>,
     display_fields: Option<&[&str]>,
 ) -> Result<Vec<T>> {
     let rows = f_by_pk(conn, table_name, pk_config, where_q_config, display_fields)?;

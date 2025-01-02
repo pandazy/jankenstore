@@ -1,11 +1,11 @@
 use super::{
     sql,
-    verify::{verify_required_fields_for_write_ops, verify_table_name, verify_values_required},
+    verify::{get_verified_write_inputs, verify_table_name, verify_values_required, VerifyConfig},
 };
 
 use rusqlite::{params_from_iter, types, Connection};
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 /// update all matching records in the table
 /// # Arguments
@@ -22,12 +22,10 @@ pub fn u_all(
     table_name: &str,
     input: &HashMap<String, types::Value>,
     where_q_config: (&str, &[types::Value]),
-    verification_options: Option<(&HashMap<String, types::Value>, &HashSet<String>)>,
+    verification_options: Option<VerifyConfig>,
 ) -> anyhow::Result<()> {
     verify_table_name(table_name)?;
-    if let Some((defaults, required_fields)) = verification_options {
-        verify_required_fields_for_write_ops(input, table_name, required_fields, defaults, false)?;
-    }
+    let input = get_verified_write_inputs(false, table_name, input, verification_options)?;
     let mut set_clause = vec![];
     let mut set_params = vec![];
     for (key, value) in input {
@@ -67,7 +65,7 @@ pub fn u_by_pk(
     pk_values: &[types::Value],
     input: &HashMap<String, types::Value>,
     where_q_config: Option<(&str, &[types::Value])>,
-    verification_options: Option<(&HashMap<String, types::Value>, &HashSet<String>)>,
+    verification_options: Option<VerifyConfig>,
 ) -> anyhow::Result<()> {
     verify_values_required(pk_values, table_name, pk_name)?;
     let (pk_where_clause, pk_where_params) = sql::in_them(pk_name, pk_values);

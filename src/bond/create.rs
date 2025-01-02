@@ -4,7 +4,7 @@ use rusqlite::{types, Connection};
 
 use crate::crud::{
     create,
-    verify::{get_verified_insert_inputs, verify_values_required},
+    verify::{get_verified_write_inputs, verify_values_required},
 };
 
 use super::relink;
@@ -18,7 +18,8 @@ pub fn n1(
 ) -> anyhow::Result<()> {
     let fk_val = p_val.clone();
     verify_values_required(&[fk_val.clone()], table_name, p_col_name)?;
-    let mut verified_input = get_verified_insert_inputs(table_name, input, verification_options)?;
+    let mut verified_input =
+        get_verified_write_inputs(true, table_name, input, verification_options)?;
     verified_input.insert(p_col_name.to_string(), fk_val);
     create::i_one(conn, table_name, &verified_input, None)?;
     Ok(())

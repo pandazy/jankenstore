@@ -67,13 +67,13 @@ fn test_create_or_update_tbl_rep() -> Result<()> {
 
     let update_input = HashMap::new();
     let err = tbl_rep
-        .upd_by_pk(&conn, &[v_txt("1")], &update_input, None)
+        .upd_by_pk(&conn, &[v_txt("1")], &update_input, None, false)
         .err()
         .unwrap();
     assert_eq!(err.to_string(), "(table: test) The input has no items");
     let update_input = HashMap::from([("name".to_string(), types::Value::Null)]);
     let update_null_name_error = tbl_rep
-        .upd_by_pk(&conn, &[v_txt("1")], &update_input, None)
+        .upd_by_pk(&conn, &[v_txt("1")], &update_input, None, false)
         .err()
         .unwrap();
     assert_snapshot!(update_null_name_error.to_string());
@@ -81,7 +81,7 @@ fn test_create_or_update_tbl_rep() -> Result<()> {
         ("name".to_string(), types::Value::Text("test2".to_string())),
         ("count".to_string(), types::Value::Integer(6)),
     ]);
-    tbl_rep.upd_by_pk(&conn, &[v_txt("1")], &update_input, None)?;
+    tbl_rep.upd_by_pk(&conn, &[v_txt("1")], &update_input, None, false)?;
     let rows = tbl_rep.list_by_pk(&conn, &[v_txt("1")], None)?;
     let count = rows[0].get("count").unwrap();
     match count {

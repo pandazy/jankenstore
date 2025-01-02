@@ -206,6 +206,7 @@ impl TblRep {
         pk_values: &[types::Value],
         input: &HashMap<String, types::Value>,
         where_q_config: Option<(&str, &[types::Value])>,
+        default_if_empty: bool,
     ) -> Result<()> {
         update::u_by_pk(
             conn,
@@ -214,7 +215,7 @@ impl TblRep {
             pk_values,
             input,
             where_q_config,
-            Some((&self.defaults, &self.required_fields)),
+            Some((&self.defaults, &self.required_fields, default_if_empty)),
         )
     }
 
