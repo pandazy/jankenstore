@@ -86,7 +86,7 @@ fn test_write_op_query_errors() -> Result<()> {
         ("name".to_string(), types::Value::Text("test".to_string())),
     ]);
     let update_where_err = tbl_rep
-        .upd_by_pk(&conn, &["1"].map(v_txt), &input, Some(("", &[])))
+        .upd_by_pk(&conn, &["1"].map(v_txt), &input, Some(("", &[])), false)
         .err()
         .unwrap();
     assert_snapshot!(update_where_err.to_string());
@@ -202,7 +202,7 @@ fn test_invalid_inputs() -> Result<()> {
     let input: HashMap<String, types::Value> =
         HashMap::from([("name".to_string(), types::Value::Text("".to_string()))]);
     let no_required_name_err_for_empty = tbl_rep
-        .upd_by_pk(&conn, &["1"].map(v_txt), &input, None)
+        .upd_by_pk(&conn, &["1"].map(v_txt), &input, None, false)
         .err()
         .unwrap();
     assert_eq!(
@@ -212,7 +212,10 @@ fn test_invalid_inputs() -> Result<()> {
 
     let input: HashMap<String, types::Value> =
         HashMap::from([("name".to_string(), types::Value::Text("alice".to_string()))]);
-    let empty_pk_error = tbl_rep.upd_by_pk(&conn, &[], &input, None).err().unwrap();
+    let empty_pk_error = tbl_rep
+        .upd_by_pk(&conn, &[], &input, None, false)
+        .err()
+        .unwrap();
     assert_snapshot!(empty_pk_error.to_string());
 
     let blob_tbl_rep = TblRep::new(
@@ -233,7 +236,7 @@ fn test_invalid_inputs() -> Result<()> {
         ("data".to_string(), types::Value::Blob(vec![])),
     ]);
     let no_required_blob_err_for_empty = blob_tbl_rep
-        .upd_by_pk(&conn, &["1"].map(v_txt), &input, None)
+        .upd_by_pk(&conn, &["1"].map(v_txt), &input, None, false)
         .err()
         .unwrap();
     assert_eq!(
