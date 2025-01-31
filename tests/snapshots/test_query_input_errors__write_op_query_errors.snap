@@ -1,5 +1,0 @@
----
-source: tests/test_query_input_errors.rs
-expression: update_where_err.to_string()
----
-Empty clause is confusing, if you don't need it, specify the `q_config` as None

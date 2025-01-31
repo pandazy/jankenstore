@@ -1,0 +1,6 @@
+---
+source: tests/test_input_errors_update.rs
+expression: result.unwrap_err()
+---
+`unknown_field`@`song` is not defined. 
+Defined fields: ["artist_id", "file", "id", "memo", "name"]

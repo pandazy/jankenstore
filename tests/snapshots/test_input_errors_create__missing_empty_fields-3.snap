@@ -1,0 +1,6 @@
+---
+source: tests/test_input_errors_create.rs
+expression: result.unwrap_err()
+---
+`name`@`song` is required but is empty. 
+Required fields: ["artist_id","id","name"]

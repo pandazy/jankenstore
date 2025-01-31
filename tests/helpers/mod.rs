@@ -110,6 +110,7 @@ pub fn initialize_db(conn: &Connection) -> anyhow::Result<()> {
           id INTEGER PRIMARY KEY,
           name TEXT NOT NULL,
           artist_id INTEGER,
+          file BLOB,
           memo TEXT DEFAULT ''
       )",
         [],
@@ -126,18 +127,10 @@ pub fn initialize_db(conn: &Connection) -> anyhow::Result<()> {
     conn.execute(
         "CREATE TABLE album (
           id INTEGER PRIMARY KEY,
-          name TEXT
+          name TEXT,
+          price REAL DEFAULT 0.0,
+          memo TEXT DEFAULT ''
       )",
-        [],
-    )?;
-
-    conn.execute(
-        "
-        CREATE TABLE log (
-            id INTEGER PRIMARY KEY,
-            content TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )",
         [],
     )?;
 

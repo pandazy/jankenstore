@@ -1,0 +1,6 @@
+---
+source: tests/test_input_errors_read.rs
+expression: result.unwrap_err()
+---
+Unknown column 'wrong_field' in table 'song'. 
+Available columns: ["artist_id","file","id","memo","name"]

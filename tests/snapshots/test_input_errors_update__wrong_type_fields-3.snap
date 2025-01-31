@@ -1,0 +1,5 @@
+---
+source: tests/test_input_errors_update.rs
+expression: result.unwrap_err()
+---
+Failed to convert JSON value to 'Real' for column 'price'. The input JSON value was: [99.9]

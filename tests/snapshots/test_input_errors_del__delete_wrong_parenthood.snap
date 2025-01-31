@@ -1,0 +1,6 @@
+---
+source: tests/test_input_errors_del.rs
+expression: result.unwrap_err()
+---
+Table 'song' is not a child of 'album'. 
+Available parent tables are ["artist"]
