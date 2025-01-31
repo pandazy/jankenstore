@@ -132,16 +132,6 @@ pub fn initialize_db(conn: &Connection) -> anyhow::Result<()> {
     )?;
 
     conn.execute(
-        "
-        CREATE TABLE log (
-            id INTEGER PRIMARY KEY,
-            content TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )",
-        [],
-    )?;
-
-    conn.execute(
         "CREATE TABLE rel_album_song (
           album_id INTEGER NOT NULL,
           song_id INTEGER NOT NULL,

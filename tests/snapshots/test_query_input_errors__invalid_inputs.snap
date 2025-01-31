@@ -1,5 +1,0 @@
----
-source: tests/test_query_input_errors.rs
-expression: problematic_resource_error.to_string()
----
-(table: test) The default value for the column 'name' cannot be Value::Null, please specify an empty value of the corresponding type

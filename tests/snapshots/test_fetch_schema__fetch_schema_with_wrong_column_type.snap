@@ -1,0 +1,5 @@
+---
+source: tests/test_fetch_schema.rs
+expression: schema_family.unwrap_err()
+---
+Invalid type: 'Null' for the column 'created_at@log'

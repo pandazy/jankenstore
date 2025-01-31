@@ -1,5 +1,0 @@
----
-source: tests/test_query_input_errors.rs
-expression: mismatch_err.to_string()
----
-(table: test) The input's value type for 'id' must be something like Integer(0), but received Text("abc")

@@ -1,5 +1,0 @@
----
-source: tests/test_query_input_errors.rs
-expression: mismatch_blob_err.to_string()
----
-(table: test) The input's value type for 'name' must be something like Text(""), but received Blob([116, 101, 115, 116])
