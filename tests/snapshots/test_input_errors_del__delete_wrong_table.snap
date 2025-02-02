@@ -1,0 +1,6 @@
+---
+source: tests/test_input_errors_del.rs
+expression: result.unwrap_err()
+---
+Table 'wrong_table' not found in schema family. 
+Available tables are: album, artist, rel_album_song, song

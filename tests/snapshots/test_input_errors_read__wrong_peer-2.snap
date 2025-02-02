@@ -1,0 +1,5 @@
+---
+source: tests/test_input_errors_read.rs
+expression: result.unwrap_err()
+---
+Table 'artist' does not have peers defined

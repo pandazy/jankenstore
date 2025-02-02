@@ -1,0 +1,5 @@
+---
+source: tests/test_fetch_schema.rs
+expression: schema_family.unwrap_err()
+---
+Table 'audience' which is parent of 'log' does not exist, but it's specified by 'log@audience_id'

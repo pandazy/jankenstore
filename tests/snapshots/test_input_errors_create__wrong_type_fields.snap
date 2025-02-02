@@ -1,0 +1,5 @@
+---
+source: tests/test_input_errors_create.rs
+expression: result.unwrap_err()
+---
+Failed to convert JSON value to 'Integer' for column 'artist_id'. The input JSON value was: "abc"

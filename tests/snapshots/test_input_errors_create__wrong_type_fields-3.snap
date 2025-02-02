@@ -1,0 +1,5 @@
+---
+source: tests/test_input_errors_create.rs
+expression: low_lever_result.unwrap_err()
+---
+`artist_id`@`song` 's value Text("abc") is of the wrong type. Expected Some(Integer)

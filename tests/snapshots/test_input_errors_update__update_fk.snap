@@ -1,0 +1,5 @@
+---
+source: tests/test_input_errors_update.rs
+expression: result.unwrap_err()
+---
+'id' cannot be updated. It's "song"'s primary key. The attempted update was {"id":6,"memo":"test"}

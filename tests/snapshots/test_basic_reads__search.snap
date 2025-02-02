@@ -1,0 +1,8 @@
+---
+source: tests/test_basic_reads.rs
+expression: "names.join(\"\\n\")"
+---
+When the Saints Go Marching In
+Scarborough Fair / Canticle
+A Hard Day's Night
+We Are!

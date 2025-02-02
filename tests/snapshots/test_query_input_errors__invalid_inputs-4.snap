@@ -1,5 +1,0 @@
----
-source: tests/test_query_input_errors.rs
-expression: mismatch_real_err.to_string()
----
-(table: test) The input's value type for 'count' must be something like Integer(2), but received Real(2.0)
