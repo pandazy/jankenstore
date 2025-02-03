@@ -30,6 +30,8 @@ pub type RelConfigRus = (String, Vec<types::Value>);
 /// `types::Value` - The primary/foreign key value (Rusqlite) of the record
 pub type RelConfigRusSingle = (String, types::Value);
 
+///
+/// Convert the peer information from JSON to a Rusqlite equivalent
 pub fn get_peer_info(
     schema_family: &SchemaFamily,
     peers: &Vec<RelConfigClientInput>,

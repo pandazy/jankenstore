@@ -53,7 +53,6 @@ impl ModifyOp {
     /// * `conn` - A connection to the database
     /// * `schema_family` - The schema family of the database
     /// * `payload` - The data to write
-    ///
     pub fn with_schema(&self, conn: &Connection, schema_family: &SchemaFamily) -> Result<()> {
         let get_payload_map = |data_src: &str, payload| -> Result<RecordOwned> {
             json_to_val_map_by_schema(schema_family, data_src, payload)
