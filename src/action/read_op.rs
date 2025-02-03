@@ -15,13 +15,40 @@ use serde_json::Value as JsonValue;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ReaderOp {
+    ///
+    /// Read records in a table by their primary keys
+    /// # Arguments
+    /// * `String` - The name of the table where the records will be read
+    /// * `Vec<JsonValue>` - The primary key values of the records to read
     ByPk(String, Vec<JsonValue>),
+
+    /// Read all records in a table that are children of specified parent records in another table
+    /// # Arguments
+    /// * `String` - The name of the table where the records will be read
+    /// * `Vec<RelConfigClientInput>` - The parent table and the parent record's primary key values
     Children(String, Vec<RelConfigClientInput>),
+
+    /// Read all records in a table that are peers of specified records in another table
+    /// # Arguments
+    /// * `String` - The name of the table where the records will be read
+    /// * `Vec<RelConfigClientInput>` - The source table and the source record's primary key values
     Peers(String, Vec<RelConfigClientInput>),
+
+    /// Search records in a table by a keyword in a text column
+    /// # Arguments
+    /// * `String` - The name of the table where the records will be read
+    /// * `String` - The name of the text column which will be searched
+    /// * `String` - The keyword to search
     Search(String, (String, String)),
 }
 
 impl ReaderOp {
+    ///
+    /// Execute the read operation on the database
+    /// # Arguments
+    /// * `conn` - A connection to the database
+    /// * `schema_family` - The schema family of the database
+    /// * `fetch_opt` - The configuration for fetching the records
     pub fn with_schema(
         &self,
         conn: &Connection,

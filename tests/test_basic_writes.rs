@@ -47,9 +47,9 @@ fn test_create() -> Result<()> {
     });
 
     let ModifyCommand { op: create_op } = from_value(json!({
-        "op": {"Create": "song"}
+        "op": {"Create": ["song", input]}
     }))?;
-    create_op.with_schema(&conn, &schema_family, &input)?;
+    create_op.with_schema(&conn, &schema_family)?;
 
     let ReadCommand { op: read_op } = from_value(json!({
         "op": {"ByPk": ["song", [42]]}
@@ -87,9 +87,9 @@ fn test_create_child() -> Result<()> {
     });
 
     let ModifyCommand { op: create_op } = from_value(json!({
-        "op": {"CreateChild": ["song", [["artist", 3]]]}
+        "op": {"CreateChild": ["song", [["artist", 3]], input]}
     }))?;
-    create_op.with_schema(&conn, &schema_family, &input)?;
+    create_op.with_schema(&conn, &schema_family)?;
 
     let records = read_op.with_schema(&conn, &schema_family, None)?;
 
@@ -114,9 +114,9 @@ fn test_update() -> Result<()> {
     });
 
     let ModifyCommand { op: update_op } = serde_json::from_value(json!({
-        "op": {"Update": ["song", [1]]}
+        "op": {"Update": ["song", [1], input]}
     }))?;
-    update_op.with_schema(&conn, &schema_family, &input)?;
+    update_op.with_schema(&conn, &schema_family)?;
     let ReadCommand { op: read_song } = serde_json::from_value(json!({
         "op": {"ByPk": ["song", [1]]}
     }))?;
@@ -125,14 +125,14 @@ fn test_update() -> Result<()> {
     assert_eq!(record[0]["name"], json!("updated"));
     assert_eq!(record[0]["memo"], json!("updated"));
 
-    let ModifyCommand { op: update_album } = serde_json::from_value(json!({
-        "op": {"Update": ["album", [1]]}
-    }))?;
     let input = json!({
         "price": 20.8,
         "memo": 2025
     });
-    update_album.with_schema(&conn, &schema_family, &input)?;
+    let ModifyCommand { op: update_album } = serde_json::from_value(json!({
+        "op": {"Update": ["album", [1], input]}
+    }))?;
+    update_album.with_schema(&conn, &schema_family)?;
     let ReadCommand { op: read_album } = serde_json::from_value(json!({
         "op": {"ByPk": ["album", [1]]}
     }))?;
@@ -160,11 +160,11 @@ fn test_update_children() -> Result<()> {
         "memo": "1966"
     });
     let ModifyCommand { op: create_op } = from_value(json!({
-      "op": {"CreateChild": ["song", [["artist", 3]]]}
+      "op": {"CreateChild": ["song", [["artist", 3]], input]}
     }))?;
 
     // Confirm the state before update
-    create_op.with_schema(&conn, &schema_family, &input)?;
+    create_op.with_schema(&conn, &schema_family)?;
     let records = read_op.with_schema(&conn, &schema_family, None)?;
     assert_eq!(records.len(), 2);
     assert_eq!(records[0]["memo"], json!("60s"));
@@ -176,10 +176,10 @@ fn test_update_children() -> Result<()> {
     });
 
     let ModifyCommand { op: update_op } = from_value(json!({
-        "op": {"UpdateChildren": ["song", [["artist", [3]]]]}
+        "op": {"UpdateChildren": ["song", [["artist", [3]]], input]}
     }))?;
 
-    update_op.with_schema(&conn, &schema_family, &input)?;
+    update_op.with_schema(&conn, &schema_family)?;
 
     let records = read_op.with_schema(&conn, &schema_family, None)?;
 
@@ -231,11 +231,11 @@ fn test_delete_children() -> Result<()> {
     });
 
     let ModifyCommand { op: create_op } = from_value(json!({
-        "op": {"CreateChild": ["song", [["artist", 3]]]}
+        "op": {"CreateChild": ["song", [["artist", 3]], input]}
     }))?;
 
     // Confirm the state before delete
-    create_op.with_schema(&conn, &schema_family, &input)?;
+    create_op.with_schema(&conn, &schema_family)?;
     let records = read_op.with_schema(&conn, &schema_family, None)?;
     assert_eq!(records.len(), 2);
 
