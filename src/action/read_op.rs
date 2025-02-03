@@ -1,5 +1,5 @@
 use super::{get_parent_info, get_peer_info, RelConfigClientInput};
-use crate::{
+use crate::sqlite::{
     basics::FetchConfig,
     input_utils::json_to_pk_val_by_schema,
     read::{self},

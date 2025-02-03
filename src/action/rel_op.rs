@@ -1,5 +1,5 @@
 use super::{get_peer_pair, RelConfigClientInput};
-use crate::{
+use crate::sqlite::{
     peer::{link, unlink},
     schema::SchemaFamily,
 };

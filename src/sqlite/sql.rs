@@ -1,6 +1,6 @@
-use rusqlite::types;
+use super::input_utils::fk_name;
 
-use crate::input_utils::fk_name;
+use rusqlite::types;
 
 /// Used as inputs to generate where conditions for SQL queries
 ///
@@ -10,7 +10,7 @@ use crate::input_utils::fk_name;
 ///
 /// # Examples
 /// ```
-/// use jankenstore::sql::WhereConfig;
+/// use jankenstore::sqlite::sql::WhereConfig;
 /// use rusqlite::types;
 /// let (clause, params): WhereConfig = ("id = ?", &vec![types::Value::Integer(1)]);
 /// ```
@@ -52,7 +52,7 @@ pub fn in_them(col_name: &str, col_values: &[types::Value]) -> WhereConfigOwned 
 /// * `link_word` - the word to link the where clause to the previous clause
 /// # Examples
 /// ```
-/// use jankenstore::sql::standardize_q_config;
+/// use jankenstore::sqlite::sql::standardize_q_config;
 /// use rusqlite::types;
 /// let params = vec![types::Value::Integer(1)];
 /// let q_config = Some(("id = ?", params.as_slice()));
@@ -88,7 +88,7 @@ pub fn standardize_q_config(q_config: Option<WhereConfig>, link_word: &str) -> W
 /// * `link_word` - the word to link the where clause to the previous clause, e.g., "AND", "OR"
 /// # Examples
 /// ```
-/// use jankenstore::sql::merge_q_configs;
+/// use jankenstore::sqlite::sql::merge_q_configs;
 /// use rusqlite::types;
 /// let params1 = vec![types::Value::Integer(1)];
 /// let q_config1 = Some(("id = ?", params1.as_slice()));

@@ -4,9 +4,11 @@ use helpers::initialize_db;
 
 use jankenstore::{
     action::ReaderOp,
-    basics::{CountConfig, FetchConfig},
-    read::{self, count},
-    schema::fetch_schema_family,
+    sqlite::{
+        basics::{CountConfig, FetchConfig},
+        read::{self, count},
+        schema::fetch_schema_family,
+    },
 };
 
 use anyhow::Result;

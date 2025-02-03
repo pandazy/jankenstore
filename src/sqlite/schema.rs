@@ -526,9 +526,9 @@ pub fn fetch_schema_family(
 
 #[cfg(test)]
 mod tests {
-    use rusqlite::types;
+    use crate::sqlite::schema::get_default_db_value;
 
-    use crate::schema::get_default_db_value;
+    use rusqlite::types;
 
     #[test]
     fn test_uncovered_types() {

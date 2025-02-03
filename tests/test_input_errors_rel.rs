@@ -1,7 +1,7 @@
 mod helpers;
 use helpers::initialize_db;
 
-use jankenstore::{action::RelOp, schema::fetch_schema_family};
+use jankenstore::{action::RelOp, sqlite::schema::fetch_schema_family};
 
 use anyhow::Result;
 use rusqlite::Connection;

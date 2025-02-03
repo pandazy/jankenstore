@@ -4,10 +4,12 @@ use helpers::initialize_db;
 use insta::assert_snapshot;
 use jankenstore::{
     action::ReaderOp,
-    basics::{CountConfig, FetchConfig},
-    read::count,
-    schema::fetch_schema_family,
-    shift::val::v_txt,
+    sqlite::{
+        basics::{CountConfig, FetchConfig},
+        read::count,
+        schema::fetch_schema_family,
+        shift::val::v_txt,
+    },
 };
 
 use anyhow::Result;

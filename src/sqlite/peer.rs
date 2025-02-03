@@ -1,4 +1,4 @@
-use crate::input_utils::fk_name;
+use super::input_utils::fk_name;
 
 use super::{
     basics::{del, insert, total},
@@ -228,7 +228,7 @@ pub fn unlink(
 
 #[cfg(test)]
 mod tests {
-    use crate::peer::peer_matching_clause;
+    use crate::sqlite::peer::peer_matching_clause;
 
     #[test]
     fn test_peer_matching_clause_empty_bond() {

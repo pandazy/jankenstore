@@ -4,7 +4,7 @@ use std::collections::HashSet;
 use helpers::initialize_db;
 
 use insta::assert_snapshot;
-use jankenstore::schema::{fetch_schema_family, SchemaFamily};
+use jankenstore::sqlite::schema::{fetch_schema_family, SchemaFamily};
 use rusqlite::Connection;
 use serde_json::json;
 

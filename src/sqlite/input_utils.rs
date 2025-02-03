@@ -1,8 +1,7 @@
-use crate::shift::RecordOwned;
-
 use super::{
     basics::is_empty,
     schema::SchemaFamily,
+    shift::RecordOwned,
     shift::{json_to_val, json_to_val_map},
 };
 

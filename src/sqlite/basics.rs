@@ -15,7 +15,7 @@ use std::collections::HashMap;
 /// # Examples
 /// ```
 /// use rusqlite::types;
-/// use jankenstore::basics;
+/// use jankenstore::sqlite::basics;
 /// let val = types::Value::Null;
 /// assert_eq!(basics::is_empty(&val), true);
 ///

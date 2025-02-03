@@ -3,9 +3,11 @@ use helpers::initialize_db;
 
 use jankenstore::{
     action::ModifyOp,
-    schema::fetch_schema_family,
-    shift::{json_to_val_map, val::v_int},
-    update::update_by_pk,
+    sqlite::{
+        schema::fetch_schema_family,
+        shift::{json_to_val_map, val::v_int},
+        update::update_by_pk,
+    },
 };
 
 use anyhow::Result;

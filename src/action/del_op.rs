@@ -1,5 +1,5 @@
 use super::utils::{get_parent_info, get_pk_vals, RelConfigClientInput};
-use crate::{delete, schema::SchemaFamily, sql::WhereConfig};
+use crate::sqlite::{delete, schema::SchemaFamily, sql::WhereConfig};
 
 use anyhow::Result;
 use rusqlite::{types, Connection};

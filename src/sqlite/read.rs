@@ -1,4 +1,4 @@
-use crate::{
+use super::{
     basics::{total, CountConfig},
     input_utils::{fk_name, verify_parenthood},
     peer::peer_matching_clause,
@@ -188,7 +188,7 @@ pub fn peers_of(
 
 #[cfg(test)]
 mod tests {
-    use crate::{basics::FetchConfig, read, schema::fetch_schema_family};
+    use crate::sqlite::{basics::FetchConfig, read, schema::fetch_schema_family};
 
     use anyhow::Result;
     use rusqlite::Connection;

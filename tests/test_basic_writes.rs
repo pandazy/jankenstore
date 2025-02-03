@@ -3,7 +3,7 @@ use helpers::initialize_db;
 
 use jankenstore::{
     action::{DelOp, ModifyOp, ReaderOp, RelOp},
-    schema::fetch_schema_family,
+    sqlite::schema::fetch_schema_family,
 };
 
 use anyhow::Result;
