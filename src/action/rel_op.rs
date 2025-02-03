@@ -24,6 +24,11 @@ pub enum RelOp {
 }
 
 impl RelOp {
+    ///
+    /// Execute the relationship operation on the databases
+    /// # Arguments
+    /// * `conn` - A connection to the database
+    /// * `schema_family` - The schema family of the database
     pub fn with_schema(&self, conn: &Connection, schema_family: &SchemaFamily) -> Result<()> {
         match self {
             Self::Link(peer1_input, peer2_input) => {

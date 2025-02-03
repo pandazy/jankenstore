@@ -32,9 +32,9 @@ fn test_wrong_table() -> Result<()> {
     });
 
     let UpdateCommand { op: update_op } = from_value(json!({
-        "op": { "Update": ["wrong_table", [1]] }
+        "op": { "Update": ["wrong_table", [1], input] }
     }))?;
-    let result = update_op.with_schema(&conn, &schema_family, &input);
+    let result = update_op.with_schema(&conn, &schema_family);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 
@@ -54,15 +54,9 @@ fn test_missing_empty_fields() -> Result<()> {
     let schema_family = fetch_schema_family(&conn, &[], "", "")?;
 
     let UpdateCommand { op: update_op } = from_value(json!({
-        "op": { "Update": ["song", [1]] }
+        "op": { "Update": ["song", [1], { "name": "" }] }
     }))?;
-    let result = update_op.with_schema(
-        &conn,
-        &schema_family,
-        &json!({
-            "name": "",
-        }),
-    );
+    let result = update_op.with_schema(&conn, &schema_family);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 
@@ -99,8 +93,8 @@ fn test_unknown_fields() -> Result<()> {
         "unknown_field": "UNKNOWN"
     });
 
-    let create_op = ModifyOp::Update("song".to_string(), vec![json!(1)]);
-    let result = create_op.with_schema(&conn, &schema_family, &input);
+    let create_op = ModifyOp::Update("song".to_string(), vec![json!(1)], input);
+    let result = create_op.with_schema(&conn, &schema_family);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 
@@ -119,8 +113,8 @@ fn test_wrong_type_fields() -> Result<()> {
         "memo": "test"
     });
 
-    let create_op = ModifyOp::Update("song".to_string(), vec![json!(1)]);
-    let result = create_op.with_schema(&conn, &schema_family, &input);
+    let create_op = ModifyOp::Update("song".to_string(), vec![json!(1)], input);
+    let result = create_op.with_schema(&conn, &schema_family);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 
@@ -128,8 +122,8 @@ fn test_wrong_type_fields() -> Result<()> {
         "price": "ninety-nine"
     });
 
-    let update_op = ModifyOp::Update("album".to_string(), vec![json!(1)]);
-    let result = update_op.with_schema(&conn, &schema_family, &album_update);
+    let update_op = ModifyOp::Update("album".to_string(), vec![json!(1)], album_update);
+    let result = update_op.with_schema(&conn, &schema_family);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 
@@ -137,8 +131,8 @@ fn test_wrong_type_fields() -> Result<()> {
         "price": [99.9]
     });
 
-    let update_op = ModifyOp::Update("album".to_string(), vec![json!(1)]);
-    let result = update_op.with_schema(&conn, &schema_family, &album_update);
+    let update_op = ModifyOp::Update("album".to_string(), vec![json!(1)], album_update);
+    let result = update_op.with_schema(&conn, &schema_family);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 
@@ -156,8 +150,8 @@ fn test_update_fk() -> Result<()> {
         "memo": "test"
     });
 
-    let create_op = ModifyOp::Update("song".to_string(), vec![json!(1)]);
-    let result = create_op.with_schema(&conn, &schema_family, &input);
+    let create_op = ModifyOp::Update("song".to_string(), vec![json!(1)], input);
+    let result = create_op.with_schema(&conn, &schema_family);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 

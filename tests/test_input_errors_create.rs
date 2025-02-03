@@ -26,8 +26,8 @@ fn test_wrong_table() -> Result<()> {
         "memo": "test"
     });
 
-    let create_op = ModifyOp::Create("wrong_table".to_string());
-    let result = create_op.with_schema(&conn, &schema_family, &input);
+    let create_op = ModifyOp::Create("wrong_table".to_string(), input);
+    let result = create_op.with_schema(&conn, &schema_family);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 
@@ -45,20 +45,19 @@ fn test_missing_empty_fields() -> Result<()> {
         "memo": ""
     });
 
-    let create_op = ModifyOp::Create("song".to_string());
-    let result = create_op.with_schema(&conn, &schema_family, &input);
+    let create_op = ModifyOp::Create("song".to_string(), input.clone());
+    let result = create_op.with_schema(&conn, &schema_family);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 
-    let create_op = ModifyOp::Create("song".to_string());
-    let result = create_op.with_schema(
-        &conn,
-        &schema_family,
-        &json!({
+    let create_op = ModifyOp::Create(
+        "song".to_string(),
+        json!({
             "name": "",
             "artist_id": 1,
         }),
     );
+    let result = create_op.with_schema(&conn, &schema_family);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 
@@ -94,9 +93,9 @@ fn test_unknown_fields() -> Result<()> {
     });
 
     let ModifyCommand { op: create_op } = from_value(json!({
-        "op": {"Create": "song"}
+        "op": {"Create": ["song", input]}
     }))?;
-    let result = create_op.with_schema(&conn, &schema_family, &input);
+    let result = create_op.with_schema(&conn, &schema_family);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 
@@ -121,22 +120,21 @@ fn test_wrong_type_fields() -> Result<()> {
     });
 
     let ModifyCommand { op: create_op } = from_value(json!({
-        "op": {"Create": "song"}
+        "op": {"Create": ["song", input]}
     }))?;
-    let result = create_op.with_schema(&conn, &schema_family, &input);
+    let result = create_op.with_schema(&conn, &schema_family);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 
-    let result = create_op.with_schema(
-        &conn,
-        &schema_family,
-        &json!({
+    let ModifyCommand { op: create_op } = from_value(json!({
+        "op": {"Create": ["song", {
             "name": "42",
             "artist_id": "22",
             "memo": "test",
             "file": "N/A"
-        }),
-    );
+        }]}
+    }))?;
+    let result = create_op.with_schema(&conn, &schema_family);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 
