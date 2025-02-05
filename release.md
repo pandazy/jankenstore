@@ -1,1 +1,1 @@
--   No functionality changes, just updated documentation
+-   Added readop-all command to read all records from a table
