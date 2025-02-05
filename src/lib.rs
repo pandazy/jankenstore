@@ -98,7 +98,7 @@
 //!
 //! // Add further condition to the search by using a FetchConfig
 //! let result = op.with_schema(&conn, &schema_family, Some(FetchConfig{
-//!    display_cols: Some(&["name"]),
+//!    display_cols: Some(&["name", "memo"]),
 //!    is_distinct: true,
 //!    where_config: Some(("memo like '%'||?||'%'", &[v_txt("big")]))
 //! })).unwrap();
