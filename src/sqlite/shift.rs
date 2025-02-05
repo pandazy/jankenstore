@@ -21,7 +21,7 @@ use std::collections::HashMap;
 ///
 /// Can be translated into Rust code below:
 /// ```
-/// use jankenstore::{shift::{RecordOwned, val::{v_int, v_txt}}};
+/// use jankenstore::sqlite::{shift::{RecordOwned, val::{v_int, v_txt}}};
 /// use std::collections::HashMap;
 ///
 /// use rusqlite::types;
@@ -48,7 +48,7 @@ pub type RecordOwned = HashMap<String, types::Value>;
 /// ```
 /// Can be translated into Rust code below:
 /// ```
-/// use jankenstore::{shift::{RecordListOwned, val::{v_int, v_txt}}};
+/// use jankenstore::sqlite::{shift::{RecordListOwned, val::{v_int, v_txt}}};
 /// use std::collections::HashMap;
 ///
 /// use rusqlite::types;
@@ -246,7 +246,7 @@ pub mod val {
 #[cfg(test)]
 mod tests {
     use super::val;
-    use crate::shift::val_to_json;
+    use crate::sqlite::shift::val_to_json;
 
     use rusqlite::types;
 

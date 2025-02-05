@@ -3,22 +3,17 @@ use helpers::initialize_db;
 
 use insta::assert_snapshot;
 use jankenstore::{
-    action::ReaderOp,
-    basics::{CountConfig, FetchConfig},
-    read::count,
-    schema::fetch_schema_family,
-    shift::val::v_txt,
+    action::commands::ReadCommand, sqlite::{
+        basics::{CountConfig, FetchConfig},
+        read::count,
+        schema::fetch_schema_family,
+        shift::val::v_txt,
+    }
 };
 
 use anyhow::Result;
 use rusqlite::Connection;
-use serde::{Deserialize, Serialize};
 use serde_json::{from_value, json};
-
-#[derive(Deserialize, Serialize)]
-struct ReadCommand {
-    op: ReaderOp,
-}
 
 #[test]
 fn test_count() -> Result<()> {
@@ -62,7 +57,10 @@ fn test_reading_peers() -> Result<()> {
     let schema_family = fetch_schema_family(&conn, &[], "", "")?;
 
     let ReadCommand { op: read_op } = from_value(json!({
-      "op": {"Peers": ["song", [["album", [1]]]]}
+      "op": {"Peers": {
+        "src": "song",
+        "peers": { "album": [1] }
+      }}
     }))?;
 
     let records = read_op.with_schema(&conn, &schema_family, None)?;
@@ -92,7 +90,7 @@ fn test_search() -> Result<()> {
     let schema_family = fetch_schema_family(&conn, &[], "", "")?;
 
     let ReadCommand { op: read_op } = from_value(json!({
-        "op": {"Search": ["song", ["name", "Marching"]]}
+        "op": {"Search": ["song", "name", "Marching"]}
     }))?;
 
     let records = read_op.with_schema(&conn, &schema_family, None)?;
@@ -100,7 +98,7 @@ fn test_search() -> Result<()> {
     assert_eq!(records[0]["name"], json!("When the Saints Go Marching In"));
 
     let ReadCommand { op: read_op } = from_value(json!({
-        "op": {"Search": ["song", ["name", "ar"]]}
+        "op": {"Search": ["song", "name", "ar"]}
     }))?;
 
     let records = read_op.with_schema(&conn, &schema_family, None)?;

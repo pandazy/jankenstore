@@ -1,4 +1,4 @@
-use crate::input_utils::fk_name;
+use super::input_utils::fk_name;
 
 use super::{
     basics::{del, insert, total},
@@ -7,6 +7,7 @@ use super::{
     sql::merge_q_configs,
 };
 
+use anyhow::{anyhow, Result};
 use rusqlite::{types, Connection};
 
 use std::collections::HashMap;
@@ -49,9 +50,9 @@ pub fn peer_matching_clause(
 /// # Arguments
 /// * `conn` - the Rusqlite connection to the database
 /// * `rel_name` - the name of the table that represents the n-n relationship
-/// * `a_config` - the table matching settings of the A side of the relationship
-///               - `tuple(source_a_table_name, source_a_pk_value)`
-/// * `b_config` - the table matching settings of the B side of the relationship, similar to `a_config`
+/// * `inputs` - the table matching settings of the A side and the B side of the relationship
+///              - `tuple(source_a_fk_col_name, source_a_pk_value)`
+///              - `tuple(source_b_fk_col_name, source_b_pk_value)`
 /// * `where_config` - the where clause and the parameters for the where clause,
 fn nn_link_exists(
     conn: &Connection,
@@ -162,6 +163,30 @@ fn d_all(
     Ok(())
 }
 
+type PeerConfigFromMap = ((String, Vec<types::Value>), (String, Vec<types::Value>));
+
+fn get_2_configs(inputs: &HashMap<String, Vec<types::Value>>) -> Result<PeerConfigFromMap> {
+    if inputs.len() != 2 {
+        return Err(anyhow!(
+            "The input should contain 2 tables. Found: {}. The invalid input: {:?}",
+            inputs.len(),
+            {
+                let mut results = vec![];
+                for (table, vals) in inputs.iter() {
+                    results.push((table.clone(), vals.clone()));
+                }
+                results.sort_by(|a, b| a.0.cmp(&b.0));
+                results
+            }
+        ));
+    }
+    let mut results = vec![];
+    for (table, vals) in inputs.iter() {
+        results.push((table.clone(), vals.clone()));
+    }
+    Ok((results[0].clone(), results[1].clone()))
+}
+
 ///
 /// link the target records to their peers
 /// (the Cartesian product of the target records and the peer records)
@@ -174,23 +199,22 @@ fn d_all(
 pub fn link(
     conn: &Connection,
     schema_family: &SchemaFamily,
-    a_config: (&str, &[types::Value]),
-    b_config: (&str, &[types::Value]),
+    inputs: &HashMap<String, Vec<types::Value>>,
 ) -> anyhow::Result<()> {
-    let (a_table, a_val) = a_config;
-    let (b_table, b_val) = b_config;
-    schema_family.verify_peer_of(a_table, b_table)?;
-    for (table, val) in [a_config, b_config] {
-        verify_pk(schema_family, table, val)?;
+    let (a_config, b_config) = get_2_configs(inputs)?;
+    schema_family.verify_peer_of(&a_config.0, &b_config.0)?;
+    for (table, vals) in [&a_config, &b_config] {
+        verify_pk(schema_family, table, vals)?;
     }
-    let peer_link_table = schema_family.try_get_peer_link_table_of(a_table)?;
-    let a_col = fk_name(a_table);
-    let b_col = fk_name(b_table);
+
+    let peer_link_table = schema_family.try_get_peer_link_table_of(&a_config.0)?;
+    let a_col = fk_name(&a_config.0);
+    let b_col = fk_name(&b_config.0);
     nn(
         conn,
         peer_link_table,
-        (a_col.as_str(), a_val),
-        (b_col.as_str(), b_val),
+        (a_col.as_str(), &a_config.1),
+        (b_col.as_str(), &b_config.1),
     )
 }
 
@@ -206,29 +230,27 @@ pub fn link(
 pub fn unlink(
     conn: &Connection,
     schema_family: &SchemaFamily,
-    a_config: (&str, &[types::Value]),
-    b_config: (&str, &[types::Value]),
+    inputs: &HashMap<String, Vec<types::Value>>,
 ) -> anyhow::Result<()> {
-    let (a_table, a_val) = a_config;
-    let (b_table, b_val) = b_config;
-    schema_family.verify_peer_of(a_table, b_table)?;
-    for (table, val) in [a_config, b_config] {
-        verify_pk(schema_family, table, val)?;
+    let (a_config, b_config) = get_2_configs(inputs)?;
+    schema_family.verify_peer_of(&a_config.0, &b_config.0)?;
+    for (peer, keys) in [&a_config, &b_config] {
+        verify_pk(schema_family, peer, keys)?;
     }
-    let peer_link_table = schema_family.try_get_peer_link_table_of(a_table)?;
-    let a_col = fk_name(a_table);
-    let b_col = fk_name(b_table);
+    let peer_link_table = schema_family.try_get_peer_link_table_of(&a_config.0)?;
+    let a_col = fk_name(&a_config.0);
+    let b_col = fk_name(&b_config.0);
     d_all(
         conn,
         peer_link_table,
-        (a_col.as_str(), a_val),
-        (b_col.as_str(), b_val),
+        (a_col.as_str(), &a_config.1),
+        (b_col.as_str(), &b_config.1),
     )
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::peer::peer_matching_clause;
+    use crate::sqlite::peer::peer_matching_clause;
 
     #[test]
     fn test_peer_matching_clause_empty_bond() {

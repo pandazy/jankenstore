@@ -1,32 +1,35 @@
-use super::utils::{get_parent_info, get_pk_vals, RelConfigClientInput};
-use crate::{delete, schema::SchemaFamily, sql::WhereConfig};
+use super::{
+    payload::{ParentHood, SrcAndKeys},
+    utils::{get_parent_info, get_pk_vals},
+};
+use crate::sqlite::{delete, schema::SchemaFamily, sql::WhereConfig};
 
 use anyhow::Result;
-use rusqlite::{types, Connection};
+use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
-use serde_json::Value as JsonValue;
 
 ///
-/// The utility set of write actions that can be performed on the database
+/// Providing generic delete operations using JSON-compatible parameters
 #[derive(Debug, Serialize, Deserialize)]
 pub enum DelOp {
     ///
     /// Delete records in a table by their primary keys
     /// # Arguments
-    /// * `String` - The name of the table where the records will be deleted
-    /// * `Vec<JsonValue>` - The primary key values of the records to delete
-    Delete(String, Vec<JsonValue>),
+    /// * `SrcAndKeys` - The primary key values of the records to delete from the specified table
+    ///                    - `src`: the table where the records will be deleted
+    ///                    - `keys`: the primary key values of the records to delete
+    Delete(SrcAndKeys),
 
+    ///
     /// Delete all records in a table that are children of specified parent records in another table
     /// # Arguments
-    /// * `String` - The name of the table where the records will be deleted
-    /// * `Vec<RelConfigClientInput>` - The parent table and the parent record's primary key values
-    DeleteChildren(String, Vec<RelConfigClientInput>),
+    /// * `ParentHood` - The table where the records will be deleted corresponding to the parent records
+    DeleteChildren(ParentHood),
 }
 
 impl DelOp {
     ///
-    /// Execute the write operation on the database
+    /// Execute the operation on the database
     /// # Arguments
     /// * `conn` - A connection to the database
     /// * `schema_family` - The schema family of the database
@@ -39,24 +42,21 @@ impl DelOp {
         where_config: Option<WhereConfig>,
     ) -> Result<()> {
         match self {
-            Self::Delete(data_src, pk_vals) => {
+            Self::Delete(SrcAndKeys { src, keys }) => {
                 delete::delete(
                     conn,
                     schema_family,
-                    data_src,
-                    get_pk_vals(schema_family, data_src, pk_vals)?.as_slice(),
+                    src,
+                    get_pk_vals(schema_family, src, keys)?.as_slice(),
                     where_config,
                 )?;
             }
-            Self::DeleteChildren(data_src, parents) => {
+            Self::DeleteChildren(ParentHood { src, parents }) => {
                 delete::delete_children_of(
                     conn,
                     schema_family,
-                    data_src,
-                    &get_parent_info(schema_family, data_src, parents)?
-                        .iter()
-                        .map(|(t, v)| (t.as_str(), v.as_slice()))
-                        .collect::<Vec<(&str, &[types::Value])>>(),
+                    src,
+                    &get_parent_info(schema_family, src, parents)?,
                     None,
                 )?;
             }

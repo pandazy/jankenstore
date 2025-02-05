@@ -3,10 +3,12 @@ mod helpers;
 use helpers::initialize_db;
 
 use jankenstore::{
-    action::ReaderOp,
-    basics::{CountConfig, FetchConfig},
-    read::{self, count},
-    schema::fetch_schema_family,
+    action::commands::ReadCommand,
+    sqlite::{
+        basics::{CountConfig, FetchConfig},
+        read::{self, count},
+        schema::fetch_schema_family,
+    },
 };
 
 use anyhow::Result;
@@ -14,11 +16,6 @@ use rusqlite::Connection;
 use serde_json::{from_value, json};
 
 use insta::assert_snapshot;
-
-#[derive(serde::Deserialize, serde::Serialize)]
-struct ReadCommand {
-    op: ReaderOp,
-}
 
 #[test]
 fn test_wrong_table() -> Result<()> {
@@ -85,14 +82,24 @@ fn test_wrong_parenthood() -> Result<()> {
     let schema_family = fetch_schema_family(&conn, &[], "", "")?;
 
     let ReadCommand { op: read_op } = from_value(json!({
-        "op": {"Children": ["song", [["album", [1]]]]}
+        "op": {"Children": {
+            "src": "song",
+            "parents": {
+                "album": [1]
+            }
+        }}
     }))?;
     let result = read_op.with_schema(&conn, &schema_family, None);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 
     let ReadCommand { op: read_op } = from_value(json!({
-        "op": {"Children": ["album", [["song", [1]]]]}
+        "op": {"Children":{
+            "src": "album",
+            "parents": {
+                "song": [1]
+            }
+        }}
     }))?;
     let result = read_op.with_schema(&conn, &schema_family, None);
     assert!(result.is_err());
@@ -109,14 +116,24 @@ fn test_wrong_peer() -> Result<()> {
     let schema_family = fetch_schema_family(&conn, &[], "", "")?;
 
     let ReadCommand { op: read_op } = from_value(json!({
-        "op": {"Peers": ["artist", [["album", [2]]]]}
+        "op": {"Peers": {
+            "src": "artist",
+            "peers": {
+                "album": [2]
+            }
+        }}
     }))?;
     let result = read_op.with_schema(&conn, &schema_family, None);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 
     let ReadCommand { op: read_op } = from_value(json!({
-        "op": {"Peers": ["song", [["artist", [2]]]]}
+        "op": {"Peers": {
+            "src": "song",
+            "peers": {
+                "artist": [2]
+            }
+        }}
     }))?;
     let result = read_op.with_schema(&conn, &schema_family, None);
     assert!(result.is_err());
@@ -133,7 +150,7 @@ fn test_wrong_search_keyword() -> Result<()> {
     let schema_family = fetch_schema_family(&conn, &[], "", "")?;
 
     let ReadCommand { op: search_op } = from_value(json!({
-        "op": {"Search": ["song", ["id", "1"]]}
+        "op": {"Search": ["song", "id", "1"]}
     }))?;
 
     let result = search_op.with_schema(&conn, &schema_family, None);

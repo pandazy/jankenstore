@@ -209,9 +209,10 @@ impl SchemaFamily {
         let peers1 = self.peers.get(peer1_name).unwrap_or(&default_peers);
         if !peers1.contains(peer2_name) {
             return Err(anyhow::anyhow!(
-                "Table '{}' is not a peer of '{}'. \nAvailable peer tables are {:?}",
+                "Table '{}' is not a peer of '{}'. \nAvailable peer tables of '{}' are {:?}",
                 peer1_name,
                 peer2_name,
+                peer1_name,
                 peers1
             ));
         }
@@ -526,9 +527,9 @@ pub fn fetch_schema_family(
 
 #[cfg(test)]
 mod tests {
-    use rusqlite::types;
+    use crate::sqlite::schema::get_default_db_value;
 
-    use crate::schema::get_default_db_value;
+    use rusqlite::types;
 
     #[test]
     fn test_uncovered_types() {

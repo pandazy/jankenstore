@@ -1,6 +1,8 @@
-use rusqlite::types;
+use std::collections::HashMap;
 
-use crate::input_utils::fk_name;
+use super::input_utils::fk_name;
+
+use rusqlite::types;
 
 /// Used as inputs to generate where conditions for SQL queries
 ///
@@ -10,7 +12,7 @@ use crate::input_utils::fk_name;
 ///
 /// # Examples
 /// ```
-/// use jankenstore::sql::WhereConfig;
+/// use jankenstore::sqlite::sql::WhereConfig;
 /// use rusqlite::types;
 /// let (clause, params): WhereConfig = ("id = ?", &vec![types::Value::Integer(1)]);
 /// ```
@@ -52,7 +54,7 @@ pub fn in_them(col_name: &str, col_values: &[types::Value]) -> WhereConfigOwned 
 /// * `link_word` - the word to link the where clause to the previous clause
 /// # Examples
 /// ```
-/// use jankenstore::sql::standardize_q_config;
+/// use jankenstore::sqlite::sql::standardize_q_config;
 /// use rusqlite::types;
 /// let params = vec![types::Value::Integer(1)];
 /// let q_config = Some(("id = ?", params.as_slice()));
@@ -88,7 +90,7 @@ pub fn standardize_q_config(q_config: Option<WhereConfig>, link_word: &str) -> W
 /// * `link_word` - the word to link the where clause to the previous clause, e.g., "AND", "OR"
 /// # Examples
 /// ```
-/// use jankenstore::sql::merge_q_configs;
+/// use jankenstore::sqlite::sql::merge_q_configs;
 /// use rusqlite::types;
 /// let params1 = vec![types::Value::Integer(1)];
 /// let q_config1 = Some(("id = ?", params1.as_slice()));
@@ -135,12 +137,12 @@ pub fn in_them_and(
 /// * `link_config` - the list of related dependency table names and their primary key values
 /// * `where_config` - generic where clause and the parameters for the where clause apart from the parent records
 pub fn get_fk_union_config(
-    link_config: &[(&str, &[types::Value])],
+    link_config: &HashMap<String, Vec<types::Value>>,
     where_config: Option<WhereConfig>,
 ) -> WhereConfigOwned {
     let mut combined_q_configs = (String::new(), Vec::new());
     for (fk_main_table, fk_vals) in link_config {
-        let in_them_config = in_them(&fk_name(fk_main_table), fk_vals);
+        let in_them_config = in_them(&fk_name(fk_main_table.as_str()), fk_vals);
         combined_q_configs = merge_q_configs(
             Some((in_them_config.0.as_str(), in_them_config.1.as_slice())),
             Some((

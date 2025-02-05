@@ -1,5 +1,8 @@
-use super::{get_parent_info, get_peer_info, RelConfigClientInput};
-use crate::{
+use super::{
+    get_parent_info, get_peer_info,
+    payload::{ParentHood, PeerHood, SrcAndKeys},
+};
+use crate::sqlite::{
     basics::FetchConfig,
     input_utils::json_to_pk_val_by_schema,
     read::{self},
@@ -13,38 +16,40 @@ use rusqlite::{types, Connection};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 
+///
+/// Providing generic read operations using JSON-compatible parameters
 #[derive(Debug, Serialize, Deserialize)]
-pub enum ReaderOp {
+pub enum ReadOp {
     ///
     /// Read records in a table by their primary keys
     /// # Arguments
-    /// * `String` - The name of the table where the records will be read
-    /// * `Vec<JsonValue>` - The primary key values of the records to read
-    ByPk(String, Vec<JsonValue>),
+    /// * `SrcAndKeys` - The primary key values of the records to read from the specified table
+    ByPk(SrcAndKeys),
 
+    ///
     /// Read all records in a table that are children of specified parent records in another table
     /// # Arguments
-    /// * `String` - The name of the table where the records will be read
-    /// * `Vec<RelConfigClientInput>` - The parent table and the parent record's primary key values
-    Children(String, Vec<RelConfigClientInput>),
+    /// * `ParentHood` - The table where the records will be read corresponding to the parent records
+    Children(ParentHood),
 
+    ///
     /// Read all records in a table that are peers of specified records in another table
     /// # Arguments
-    /// * `String` - The name of the table where the records will be read
-    /// * `Vec<RelConfigClientInput>` - The source table and the source record's primary key values
-    Peers(String, Vec<RelConfigClientInput>),
+    /// * `PeerHood` - The table where the records will be read corresponding to the peer records
+    Peers(PeerHood),
 
+    ///
     /// Search records in a table by a keyword in a text column
     /// # Arguments
     /// * `String` - The name of the table where the records will be read
     /// * `String` - The name of the text column which will be searched
     /// * `String` - The keyword to search
-    Search(String, (String, String)),
+    Search(String, String, String),
 }
 
-impl ReaderOp {
+impl ReadOp {
     ///
-    /// Execute the read operation on the database
+    /// Execute the operation on the database
     /// # Arguments
     /// * `conn` - A connection to the database
     /// * `schema_family` - The schema family of the database
@@ -63,37 +68,19 @@ impl ReaderOp {
             Ok(results)
         };
         let results = match self {
-            Self::ByPk(table, pk_vals) => {
-                let pk_vals = get_pk_vals(table, pk_vals)?;
-                read::by_pk(conn, schema_family, table, &pk_vals, fetch_opt)
+            Self::ByPk(SrcAndKeys { src, keys }) => {
+                let pk_vals = get_pk_vals(src, keys)?;
+                read::by_pk(conn, schema_family, src, &pk_vals, fetch_opt)
             }
-            Self::Children(child_table, parent_info) => {
-                let parent_info = get_parent_info(schema_family, child_table, parent_info)?;
-                read::children_of(
-                    conn,
-                    schema_family,
-                    child_table,
-                    &parent_info
-                        .iter()
-                        .map(|(t, v)| (t.as_str(), v.as_slice()))
-                        .collect::<Vec<(&str, &[types::Value])>>(),
-                    fetch_opt,
-                )
+            Self::Children(ParentHood { src, parents }) => {
+                let parent_info = get_parent_info(schema_family, src, parents)?;
+                read::children_of(conn, schema_family, src, &parent_info, fetch_opt)
             }
-            Self::Peers(source_table, peer_info) => {
-                let peer_info = get_peer_info(schema_family, peer_info)?;
-                read::peers_of(
-                    conn,
-                    schema_family,
-                    source_table,
-                    &peer_info
-                        .iter()
-                        .map(|(t, v)| (t.as_str(), v.as_slice()))
-                        .collect::<Vec<(&str, &[types::Value])>>(),
-                    fetch_opt,
-                )
+            Self::Peers(PeerHood { src, peers }) => {
+                let peer_info = get_peer_info(schema_family, peers)?;
+                read::peers_of(conn, schema_family, src, &peer_info, fetch_opt)
             }
-            Self::Search(table, (col, keyword)) => {
+            Self::Search(table, col, keyword) => {
                 let schema = schema_family.try_get_schema(table)?;
                 let col_type = schema.types.get(col).unwrap_or(&types::Type::Null);
                 if !col_type.eq(&types::Type::Text) {

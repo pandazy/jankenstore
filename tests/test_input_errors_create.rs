@@ -2,16 +2,17 @@ mod helpers;
 use helpers::initialize_db;
 
 use jankenstore::{
-    action::ModifyOp,
-    add::create,
-    schema::fetch_schema_family,
-    shift::{json_to_val_map, val::v_txt},
+    action::commands::CreateCommand,
+    sqlite::{
+        add::create,
+        schema::fetch_schema_family,
+        shift::{json_to_val_map, val::v_txt},
+    },
 };
 
 use anyhow::Result;
 use insta::assert_snapshot;
 use rusqlite::{types, Connection};
-use serde::{Deserialize, Serialize};
 use serde_json::{from_value, json};
 use std::collections::HashMap;
 
@@ -26,7 +27,10 @@ fn test_wrong_table() -> Result<()> {
         "memo": "test"
     });
 
-    let create_op = ModifyOp::Create("wrong_table".to_string(), input);
+    let CreateCommand { op: create_op } = from_value(json!({
+        "op": {"Create": ["wrong_table", input]}
+    }))?;
+
     let result = create_op.with_schema(&conn, &schema_family);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
@@ -45,18 +49,20 @@ fn test_missing_empty_fields() -> Result<()> {
         "memo": ""
     });
 
-    let create_op = ModifyOp::Create("song".to_string(), input.clone());
+    let CreateCommand { op: create_op } = from_value(json!({
+        "op": {"Create": ["song", input.clone()]}
+    }))?;
+
     let result = create_op.with_schema(&conn, &schema_family);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 
-    let create_op = ModifyOp::Create(
-        "song".to_string(),
-        json!({
+    let CreateCommand { op: create_op } = from_value(json!({
+        "op": {"Create": ["song", {
             "name": "",
             "artist_id": 1,
-        }),
-    );
+        }]}
+    }))?;
     let result = create_op.with_schema(&conn, &schema_family);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
@@ -79,11 +85,6 @@ fn test_unknown_fields() -> Result<()> {
     let conn = Connection::open_in_memory()?;
     initialize_db(&conn)?;
 
-    #[derive(Debug, Deserialize, Serialize)]
-    struct ModifyCommand {
-        op: ModifyOp,
-    }
-
     let schema_family = fetch_schema_family(&conn, &[], "", "")?;
     let input = json!({
         "name": "foobar",
@@ -92,7 +93,7 @@ fn test_unknown_fields() -> Result<()> {
         "unknown_field": "UNKNOWN"
     });
 
-    let ModifyCommand { op: create_op } = from_value(json!({
+    let CreateCommand { op: create_op } = from_value(json!({
         "op": {"Create": ["song", input]}
     }))?;
     let result = create_op.with_schema(&conn, &schema_family);
@@ -107,11 +108,6 @@ fn test_wrong_type_fields() -> Result<()> {
     let conn = Connection::open_in_memory()?;
     initialize_db(&conn)?;
 
-    #[derive(Debug, Deserialize, Serialize)]
-    struct ModifyCommand {
-        op: ModifyOp,
-    }
-
     let schema_family = fetch_schema_family(&conn, &[], "", "")?;
     let input = json!({
         "name": 42,
@@ -119,14 +115,14 @@ fn test_wrong_type_fields() -> Result<()> {
         "memo": "test"
     });
 
-    let ModifyCommand { op: create_op } = from_value(json!({
+    let CreateCommand { op: create_op } = from_value(json!({
         "op": {"Create": ["song", input]}
     }))?;
     let result = create_op.with_schema(&conn, &schema_family);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 
-    let ModifyCommand { op: create_op } = from_value(json!({
+    let CreateCommand { op: create_op } = from_value(json!({
         "op": {"Create": ["song", {
             "name": "42",
             "artist_id": "22",

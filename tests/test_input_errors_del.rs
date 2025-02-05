@@ -1,7 +1,7 @@
 mod helpers;
 use helpers::initialize_db;
 
-use jankenstore::{action::DelOp, schema::fetch_schema_family};
+use jankenstore::{action::commands::DeleteCommand, sqlite::schema::fetch_schema_family};
 
 use anyhow::Result;
 use rusqlite::Connection;
@@ -16,8 +16,13 @@ fn test_delete_wrong_table() -> Result<()> {
 
     let schema_family = fetch_schema_family(&conn, &[], "", "")?;
 
-    let create_op = DelOp::Delete("wrong_table".to_string(), vec![json!(1)]);
-    let result = create_op.with_schema(&conn, &schema_family, None);
+    let DeleteCommand { op: del_op } = serde_json::from_value(json!({
+        "op": {"Delete": {
+            "src": "wrong_table",
+            "keys": [1]
+        }}
+    }))?;
+    let result = del_op.with_schema(&conn, &schema_family, None);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
     Ok(())
@@ -30,11 +35,14 @@ fn test_delete_wrong_parenthood() -> Result<()> {
 
     let schema_family = fetch_schema_family(&conn, &[], "", "")?;
 
-    let create_op = DelOp::DeleteChildren(
-        "song".to_string(),
-        vec![("album".to_string(), vec![json!(1)])],
-    );
-    let result = create_op.with_schema(&conn, &schema_family, None);
+    let DeleteCommand { op: del_op } = serde_json::from_value(json!({
+        "op": {"DeleteChildren": {
+            "src": "song",
+            "parents": { "album": [1] }
+        }}
+    }))?;
+
+    let result = del_op.with_schema(&conn, &schema_family, None);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
     Ok(())
