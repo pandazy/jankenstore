@@ -1,5 +1,5 @@
 use super::{
-    payload::{ParentHood, SrcAndKeys},
+    payload::{ParentHood, ParsableOp, SrcAndKeys},
     utils::{get_parent_info, get_pk_vals},
 };
 use crate::sqlite::{delete, schema::SchemaFamily, sql::WhereConfig};
@@ -64,3 +64,5 @@ impl DelOp {
         Ok(())
     }
 }
+
+impl ParsableOp<'_> for DelOp {}

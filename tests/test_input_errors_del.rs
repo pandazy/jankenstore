@@ -1,7 +1,7 @@
 mod helpers;
 use helpers::initialize_db;
 
-use jankenstore::{action::commands::DeleteCommand, sqlite::schema::fetch_schema_family};
+use jankenstore::{action::DelOp, sqlite::schema::fetch_schema_family};
 
 use anyhow::Result;
 use rusqlite::Connection;
@@ -16,11 +16,11 @@ fn test_delete_wrong_table() -> Result<()> {
 
     let schema_family = fetch_schema_family(&conn, &[], "", "")?;
 
-    let DeleteCommand { op: del_op } = serde_json::from_value(json!({
-        "op": {"Delete": {
+    let del_op: DelOp = serde_json::from_value(json!({
+        "Delete": {
             "src": "wrong_table",
             "keys": [1]
-        }}
+        }
     }))?;
     let result = del_op.with_schema(&conn, &schema_family, None);
     assert!(result.is_err());
@@ -35,11 +35,11 @@ fn test_delete_wrong_parenthood() -> Result<()> {
 
     let schema_family = fetch_schema_family(&conn, &[], "", "")?;
 
-    let DeleteCommand { op: del_op } = serde_json::from_value(json!({
-        "op": {"DeleteChildren": {
+    let del_op: DelOp = serde_json::from_value(json!({
+        "DeleteChildren": {
             "src": "song",
             "parents": { "album": [1] }
-        }}
+        }
     }))?;
 
     let result = del_op.with_schema(&conn, &schema_family, None);

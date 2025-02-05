@@ -12,15 +12,9 @@ use jankenstore::{
 
 use anyhow::Result;
 use rusqlite::Connection;
-use serde::{Deserialize, Serialize};
 use serde_json::{from_value, json};
 
 use insta::assert_snapshot;
-
-#[derive(Debug, Deserialize, Serialize)]
-struct UpdateCommand {
-    op: UpdateOp,
-}
 
 #[test]
 fn test_wrong_table() -> Result<()> {
@@ -33,11 +27,11 @@ fn test_wrong_table() -> Result<()> {
         "memo": "test"
     });
 
-    let UpdateCommand { op: update_op } = from_value(json!({
-        "op": { "Update": [{
+    let update_op: UpdateOp = from_value(json!({
+        "Update": [{
             "src": "wrong_table",
             "keys": [1],
-        }, input] }
+        }, input]
     }))?;
     let result = update_op.with_schema(&conn, &schema_family);
     assert!(result.is_err());
@@ -53,11 +47,11 @@ fn test_missing_empty_fields() -> Result<()> {
 
     let schema_family = fetch_schema_family(&conn, &[], "", "")?;
 
-    let UpdateCommand { op: update_op } = from_value(json!({
-        "op": { "Update": [{
+    let update_op: UpdateOp = from_value(json!({
+        "Update": [{
             "src": "song",
             "keys": [1],
-        }, { "name": "" }] }
+        }, { "name": "" }]
     }))?;
     let result = update_op.with_schema(&conn, &schema_family);
     assert!(result.is_err());
@@ -96,11 +90,11 @@ fn test_unknown_fields() -> Result<()> {
         "unknown_field": "UNKNOWN"
     });
 
-    let UpdateCommand { op: update_op } = from_value(json!({
-        "op": { "Update": [{
+    let update_op: UpdateOp = from_value(json!({
+        "Update": [{
             "src": "song",
             "keys": [1],
-        }, input] }
+        }, input]
     }))?;
 
     let result = update_op.with_schema(&conn, &schema_family);
@@ -122,13 +116,12 @@ fn test_wrong_type_fields() -> Result<()> {
         "memo": "test"
     });
 
-    let UpdateCommand { op: update_op } = from_value(json!({
-        "op": { "Update": [{
+    let update_op: UpdateOp = from_value(json!({
+        "Update": [{
             "src": "song",
             "keys": [1],
-        }, input] }
+        }, input]
     }))?;
-
     let result = update_op.with_schema(&conn, &schema_family);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
@@ -137,13 +130,12 @@ fn test_wrong_type_fields() -> Result<()> {
         "price": "ninety-nine"
     });
 
-    let UpdateCommand { op: update_op } = from_value(json!({
-        "op": { "Update": [{
+    let update_op: UpdateOp = from_value(json!({
+        "Update": [{
             "src": "album",
             "keys": [1],
-        }, album_update] }
+        }, album_update]
     }))?;
-
     let result = update_op.with_schema(&conn, &schema_family);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
@@ -152,13 +144,12 @@ fn test_wrong_type_fields() -> Result<()> {
         "price": [99.9]
     });
 
-    let UpdateCommand { op: update_op } = from_value(json!({
-        "op": { "Update": [{
+    let update_op: UpdateOp = from_value(json!({
+        "Update": [{
             "src": "album",
             "keys": [1],
-        }, album_update] }
+        }, album_update]
     }))?;
-
     let result = update_op.with_schema(&conn, &schema_family);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
@@ -177,13 +168,12 @@ fn test_update_fk() -> Result<()> {
         "memo": "test"
     });
 
-    let UpdateCommand { op: update_op } = from_value(json!({
-        "op": { "Update": [{
+    let update_op: UpdateOp = from_value(json!({
+        "Update": [{
             "src": "song",
             "keys": [1],
-        }, input] }
+        }, input]
     }))?;
-
     let result = update_op.with_schema(&conn, &schema_family);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());

@@ -1,1 +1,2 @@
--   Added readop-all command to read all records from a table
+-   Removed unnecessary entities: commands
+-   Added `ParsableOp` for actions so it's easier to use together with JSON strings

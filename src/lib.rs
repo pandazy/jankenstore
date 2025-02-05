@@ -39,7 +39,7 @@
 //!
 //! ## Example of using a Read action
 //! ```rust
-//! use jankenstore::action::ReadCommand;
+//! use jankenstore::action::{payload::ParsableOp, ReadOp};
 //! use jankenstore::sqlite::{
 //!     schema::fetch_schema_family,
 //!     shift::val::v_txt,
@@ -73,14 +73,13 @@
 //! let schema_family = fetch_schema_family(&conn, &[], "", "").unwrap();
 //!
 //! // get all records that have the primary key 2
-//! let ReadCommand { op } = from_value(json!({
-//!       "op": {
+//! let op: ReadOp = from_value(json!(
+//!       {
 //!            "ByPk": {
 //!               "src": "myexample",
 //!               "keys": [2]
 //!            }
-//!       }
-//!    })).unwrap();
+//!       })).unwrap();
 //! let result = op.with_schema(&conn, &schema_family, None).unwrap();
 //! assert_eq!(result.len(), 1);
 //! assert_eq!(result[0]["name"], "Alice");
@@ -88,11 +87,11 @@
 //!
 //!
 //! // get all records by search keyword in the name column
-//! let ReadCommand { op } = from_value(json!({
-//!       "op": {
-//!            "Search": ["myexample", "name", "Alice"]
-//!       }
-//!    })).unwrap();
+//! // the action can also be created from a string
+//! // a practical use case might be if on a API endpoint handler,
+//! // the JSON request is received as a string, then
+//! let query_param = r#"{ "Search": ["myexample", "name", "Alice"] }"#;
+//! let op = ReadOp::from_str(query_param).unwrap();
 //! let result = op.with_schema(&conn, &schema_family, None).unwrap();
 //! assert_eq!(result.len(), 2);
 //! assert_eq!(result[0]["name"], "Alice");

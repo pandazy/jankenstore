@@ -1,0 +1,5 @@
+---
+source: tests/test_input_errors_create.rs
+expression: result.unwrap_err()
+---
+Failed to parse an action op from string: { "Create": ["song", 1]

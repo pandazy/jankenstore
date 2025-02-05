@@ -1,6 +1,6 @@
 use super::{
     get_parent_info, get_peer_info,
-    payload::{ParentHood, PeerHood, SrcAndKeys},
+    payload::{ParentHood, ParsableOp, PeerHood, SrcAndKeys},
 };
 use crate::sqlite::{
     basics::FetchConfig,
@@ -113,3 +113,5 @@ impl ReadOp {
         Ok(list_to_json(&results)?)
     }
 }
+
+impl ParsableOp<'_> for ReadOp {}
