@@ -1,2 +1,1 @@
--   Removed unnecessary entities: commands
--   Added `ParsableOp` for actions so it's easier to use together with JSON strings
+-   Removed unnecessary context on action parsing
