@@ -1,0 +1,6 @@
+---
+source: tests/test_input_errors_rel.rs
+expression: result.unwrap_err()
+---
+Peer map must contain exactly 2 peers, but found 1. 
+Specifically the invalid inputs are: [("album", [Number(1)])]

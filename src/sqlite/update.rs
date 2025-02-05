@@ -95,7 +95,7 @@ pub fn update_children_of(
     conn: &Connection,
     schema_family: &SchemaFamily,
     child_table: &str,
-    parent_info: &[(&str, &[types::Value])],
+    parent_info: &HashMap<String, Vec<types::Value>>,
     input: &HashMap<String, types::Value>,
     where_config_opt: Option<WhereConfig>,
     default_if_absent: bool,

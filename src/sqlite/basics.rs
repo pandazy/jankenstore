@@ -50,6 +50,8 @@ pub struct FetchConfig<'a> {
     pub where_config: Option<WhereConfig<'a>>,
 }
 
+///
+/// Configuration for counting records from the table
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct CountConfig<'a> {
     pub distinct_field: Option<&'a str>,
@@ -146,6 +148,7 @@ pub fn del(conn: &Connection, table_name: &str, where_config: WhereConfig) -> an
     Ok(())
 }
 
+///
 /// update all matching records in the table
 /// # Arguments
 ///

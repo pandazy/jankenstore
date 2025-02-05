@@ -10,6 +10,7 @@ use rusqlite::{types, Connection};
 
 use std::collections::HashMap;
 
+///
 /// Create a new record in a table.
 /// # Arguments
 /// * `conn` - A connection to the database
@@ -51,7 +52,7 @@ pub fn create_child_of(
     conn: &Connection,
     schema_family: &SchemaFamily,
     child_table: &str,
-    parent_info: &[(&str, types::Value)],
+    parent_info: &HashMap<String, types::Value>,
     input: &HashMap<String, types::Value>,
     default_if_absent: bool,
 ) -> anyhow::Result<()> {

@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use super::input_utils::fk_name;
 
 use rusqlite::types;
@@ -135,12 +137,12 @@ pub fn in_them_and(
 /// * `link_config` - the list of related dependency table names and their primary key values
 /// * `where_config` - generic where clause and the parameters for the where clause apart from the parent records
 pub fn get_fk_union_config(
-    link_config: &[(&str, &[types::Value])],
+    link_config: &HashMap<String, Vec<types::Value>>,
     where_config: Option<WhereConfig>,
 ) -> WhereConfigOwned {
     let mut combined_q_configs = (String::new(), Vec::new());
     for (fk_main_table, fk_vals) in link_config {
-        let in_them_config = in_them(&fk_name(fk_main_table), fk_vals);
+        let in_them_config = in_them(&fk_name(fk_main_table.as_str()), fk_vals);
         combined_q_configs = merge_q_configs(
             Some((in_them_config.0.as_str(), in_them_config.1.as_slice())),
             Some((

@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use super::{
     basics::{total, CountConfig},
     input_utils::{fk_name, verify_parenthood},
@@ -117,7 +119,7 @@ pub fn children_of(
     conn: &Connection,
     schema_family: &SchemaFamily,
     child_table: &str,
-    parent_info: &[(&str, &[types::Value])],
+    parent_info: &HashMap<String, Vec<types::Value>>,
     fetch_config_opt: Option<FetchConfig>,
 ) -> Result<RecordListOwned> {
     schema_family.try_get_schema(child_table)?;
@@ -153,14 +155,17 @@ pub fn peers_of(
     conn: &Connection,
     schema_family: &SchemaFamily,
     source_table: &str,
-    peer_config: &[(&str, &[types::Value])],
+    peer_config: &HashMap<String, Vec<types::Value>>,
     fetch_config_opt: Option<FetchConfig>,
 ) -> Result<RecordListOwned> {
     let where_config = fetch_config_opt.and_then(|cfg| cfg.where_config);
     let rel_table = schema_family.try_get_peer_link_table_of(source_table)?;
     verify_peers(
         schema_family,
-        &peer_config.iter().map(|(t, _)| *t).collect::<Vec<_>>(),
+        &peer_config
+            .iter()
+            .map(|(t, _)| t.as_str())
+            .collect::<Vec<_>>(),
     )?;
     let mut fk_union_config = get_fk_union_config(peer_config, where_config);
     let source_fk_name = fk_name(source_table);

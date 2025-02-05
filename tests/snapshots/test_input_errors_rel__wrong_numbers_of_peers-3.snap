@@ -1,0 +1,5 @@
+---
+source: tests/test_input_errors_rel.rs
+expression: results.unwrap_err()
+---
+The input should contain 2 tables. Found: 3. The invalid input: [("album", [Integer(1)]), ("artist", [Integer(1)]), ("song", [Integer(1), Integer(3)])]
