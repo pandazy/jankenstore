@@ -3,7 +3,7 @@ use helpers::initialize_db;
 
 use insta::assert_snapshot;
 use jankenstore::{
-    action::commands::ReadCommand,
+    action::{payload::ParsableOp, ReadOp},
     sqlite::{
         basics::{CountConfig, FetchConfig},
         read::count,
@@ -24,6 +24,17 @@ fn test_count() -> Result<()> {
     let schema_family = fetch_schema_family(&conn, &[], "", "")?;
     let result = count(&conn, &schema_family, "song", None)?;
     assert_eq!(result, 6);
+
+    let input = ReadOp::from_str(
+        r#"
+        {
+            "Search": ["song", "name", "ar"]
+        }
+    "#,
+    )?;
+
+    let result = input.with_schema(&conn, &schema_family, None);
+    assert_eq!(result?.len(), 4);
 
     let result = count(
         &conn,
@@ -57,9 +68,7 @@ fn test_read_all() -> Result<()> {
 
     let schema_family = fetch_schema_family(&conn, &[], "", "")?;
 
-    let ReadCommand { op: read_op } = from_value(json!({
-        "op": {"All": "song"}
-    }))?;
+    let read_op = ReadOp::from_str(r#"{ "All": "song" }"#)?;
 
     let records = read_op.with_schema(&conn, &schema_family, None)?;
     assert_eq!(records.len(), 6);
@@ -73,12 +82,14 @@ fn test_reading_peers() -> Result<()> {
 
     let schema_family = fetch_schema_family(&conn, &[], "", "")?;
 
-    let ReadCommand { op: read_op } = from_value(json!({
-      "op": {"Peers": {
-        "src": "song",
-        "peers": { "album": [1] }
-      }}
-    }))?;
+    let read_op = ReadOp::from_str(
+        r#"{
+                "Peers": {
+                    "src": "song",
+                    "peers": { "album": [1] }
+                }
+            }"#,
+    )?;
 
     let records = read_op.with_schema(&conn, &schema_family, None)?;
     assert_eq!(records.len(), 4);
@@ -106,16 +117,16 @@ fn test_search() -> Result<()> {
 
     let schema_family = fetch_schema_family(&conn, &[], "", "")?;
 
-    let ReadCommand { op: read_op } = from_value(json!({
-        "op": {"Search": ["song", "name", "Marching"]}
-    }))?;
+    let read_op = ReadOp::from_str(
+        r#"{ "Search": ["song", "name", "Marching"] }"#,
+    )?;
 
     let records = read_op.with_schema(&conn, &schema_family, None)?;
     assert_eq!(records.len(), 1);
     assert_eq!(records[0]["name"], json!("When the Saints Go Marching In"));
 
-    let ReadCommand { op: read_op } = from_value(json!({
-        "op": {"Search": ["song", "name", "ar"]}
+    let read_op: ReadOp = from_value(json!({
+        "Search": ["song", "name", "ar"]
     }))?;
 
     let records = read_op.with_schema(&conn, &schema_family, None)?;

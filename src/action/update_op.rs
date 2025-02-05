@@ -1,6 +1,6 @@
 use super::{
     get_parent_info, get_pk_vals,
-    payload::{ParentHood, SrcAndKeys},
+    payload::{ParentHood, ParsableOp, SrcAndKeys},
 };
 use crate::sqlite::{
     input_utils::json_to_val_map_by_schema, schema::SchemaFamily, shift::RecordOwned, update,
@@ -67,3 +67,5 @@ impl UpdateOp {
         Ok(())
     }
 }
+
+impl ParsableOp<'_> for UpdateOp {}

@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use helpers::initialize_db;
 
 use jankenstore::{
-    action::commands::PeerCommand,
+    action::PeerOp,
     sqlite::{peer::link, schema::fetch_schema_family, shift::val::v_int},
 };
 
@@ -21,11 +21,11 @@ fn test_link_of_wrong_peers() -> Result<()> {
 
     let schema_family = fetch_schema_family(&conn, &[], "", "")?;
 
-    let PeerCommand { op: rel_op } = from_value(json!({
-        "op": {"Link": {
+    let rel_op: PeerOp = from_value(json!({
+        "Link": {
             "album": [1],
             "artist": [1]
-        }}
+        }
     }))?;
     let result = rel_op.with_schema(&conn, &schema_family);
     assert!(result.is_err());
@@ -41,21 +41,21 @@ fn test_wrong_numbers_of_peers() -> Result<()> {
 
     let schema_family = fetch_schema_family(&conn, &[], "", "")?;
 
-    let PeerCommand { op: rel_op } = from_value(json!({
-        "op": {"Link": {
+    let rel_op: PeerOp = from_value(json!({
+        "Link": {
             "album": [1],
             "artist": [1],
             "song": [1, 3]
-        }}
+        }
     }))?;
     let result = rel_op.with_schema(&conn, &schema_family);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 
-    let PeerCommand { op: rel_op } = from_value(json!({
-        "op": {"Link": {
+    let rel_op: PeerOp = from_value(json!({
+        "Link": {
             "album": [1]
-        }}
+        }
     }))?;
     let result = rel_op.with_schema(&conn, &schema_family);
     assert!(result.is_err());

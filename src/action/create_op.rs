@@ -1,4 +1,7 @@
-use super::{get_one_on_one_parent_info, payload::OneOnOneParentBond};
+use super::{
+    get_one_on_one_parent_info,
+    payload::{OneOnOneParentBond, ParsableOp},
+};
 use crate::sqlite::{
     add, input_utils::json_to_val_map_by_schema, schema::SchemaFamily, shift::RecordOwned,
 };
@@ -60,3 +63,5 @@ impl CreateOp {
         Ok(())
     }
 }
+
+impl ParsableOp<'_> for CreateOp {}

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use super::get_peer_pair;
+use super::{get_peer_pair, payload::ParsableOp};
 use crate::sqlite::{
     peer::{link, unlink},
     schema::SchemaFamily,
@@ -53,3 +53,5 @@ impl PeerOp {
         Ok(())
     }
 }
+
+impl ParsableOp<'_> for PeerOp {}
