@@ -4,35 +4,36 @@
 //! to complete basic CRUD operations in a SQLite database, by leveraging [rusqlite]
 //!
 //! # Highlighted Features
-//! ## Actions:
+//! ## Actions
 //! They are Serializeable (see [serde]) and Deserializeable enums that can be used
 //! to easily translate JSON requests into SQL operation.
 //! Then they can be used to build generic CRUD services,
 //! such as web services using [Axum](https://docs.rs/axum/latest/axum/)
 //!
 //! Currently, the following actions are supported:
-//! - CreateOp
-//!    - Create
-//!    - CreateChild
-//! - Read
-//!    - ByPk
-//!    - Children
-//!    - Peers
-//!    - Search
-//! - UpdateOp
-//!    - Update
-//!    - UpdateChild
-//! - DelOp
-//!    - Delete
-//!    - DeleteChildren
-//!    - DeletePeers
-//! - PeerOp
-//!    - Link
-//!    - Unlink
+//! - [action::CreateOp]
+//!    - [action::CreateOp::Create]
+//!    - [action::CreateOp::CreateChild]
+//! - [action::ReadOp]
+//!    - [action::ReadOp::ByPk]
+//!    - [action::ReadOp::Children]
+//!    - [action::ReadOp::Peers]
+//!    - [action::ReadOp::Search]
+//! - [action::UpdateOp]
+//!    - [action::UpdateOp::Update]
+//!    - [action::UpdateOp::UpdateChildren]
+//! - [action::DelOp]
+//!    - [action::DelOp::Delete]
+//!    - [action::DelOp::DeleteChildren]
+//! - [action::PeerOp]
+//!    - [action::PeerOp::Link]
+//!    - [action::PeerOp::Unlink]
 //!
-//! ## Schema:
-//! It uses [etch_schema_family] to automatically extract the schema of the database
+//! ## Schema
+//! [sqlite::schema::fetch_schema_family] can be used to automatically extract the schema of the database
 //! and use it to validate the input data, reducing the risk of malicious attacks
+//!
+//! * It should be used together with the actions' `with_schema` method to validate the input data
 //!
 //!
 //! ## Example of using a Read action
