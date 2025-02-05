@@ -3,7 +3,7 @@ mod helpers;
 use helpers::initialize_db;
 
 use jankenstore::{
-    action::{commands::ReadCommand},
+    action::commands::ReadCommand,
     sqlite::{
         basics::{CountConfig, FetchConfig},
         read::{self, count},
@@ -16,7 +16,6 @@ use rusqlite::Connection;
 use serde_json::{from_value, json};
 
 use insta::assert_snapshot;
-
 
 #[test]
 fn test_wrong_table() -> Result<()> {

@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use helpers::initialize_db;
 
 use jankenstore::{
-    action::{commands::PeerCommand},
+    action::commands::PeerCommand,
     sqlite::{peer::link, schema::fetch_schema_family, shift::val::v_int},
 };
 

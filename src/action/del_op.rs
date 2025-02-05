@@ -9,7 +9,7 @@ use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 
 ///
-/// The utility set of write actions that can be performed on the database
+/// Providing generic delete operations using JSON-compatible parameters
 #[derive(Debug, Serialize, Deserialize)]
 pub enum DelOp {
     ///
@@ -29,7 +29,7 @@ pub enum DelOp {
 
 impl DelOp {
     ///
-    /// Execute the write operation on the database
+    /// Execute the operation on the database
     /// # Arguments
     /// * `conn` - A connection to the database
     /// * `schema_family` - The schema family of the database

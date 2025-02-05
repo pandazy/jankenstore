@@ -16,6 +16,8 @@ use rusqlite::{types, Connection};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 
+///
+/// Providing generic read operations using JSON-compatible parameters
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ReadOp {
     ///
@@ -47,7 +49,7 @@ pub enum ReadOp {
 
 impl ReadOp {
     ///
-    /// Execute the read operation on the database
+    /// Execute the operation on the database
     /// # Arguments
     /// * `conn` - A connection to the database
     /// * `schema_family` - The schema family of the database

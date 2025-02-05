@@ -2,7 +2,7 @@ mod helpers;
 use helpers::initialize_db;
 
 use jankenstore::{
-    action::{commands::CreateCommand},
+    action::commands::CreateCommand,
     sqlite::{
         add::create,
         schema::fetch_schema_family,
@@ -15,7 +15,6 @@ use insta::assert_snapshot;
 use rusqlite::{types, Connection};
 use serde_json::{from_value, json};
 use std::collections::HashMap;
-
 
 #[test]
 fn test_wrong_table() -> Result<()> {
