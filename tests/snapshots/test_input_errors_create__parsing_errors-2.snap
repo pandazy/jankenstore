@@ -2,4 +2,4 @@
 source: tests/test_input_errors_create.rs
 expression: result.unwrap_err()
 ---
-EOF while parsing an object at line 1 column 23
+unknown variant `BadOp`, expected `Create` or `CreateChild` at line 1 column 9
