@@ -1,6 +1,5 @@
 use std::{collections::HashMap, fmt::Debug};
 
-use anyhow::Context;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 
@@ -36,8 +35,7 @@ pub trait ParsableOp<'a>: Debug + Serialize + Deserialize<'a> {
     /// # Arguments
     /// * `cmd` - The string to parse, it must be a valid JSON string
     fn from_str(cmd: &'a str) -> anyhow::Result<Self> {
-        let op: Self = serde_json::from_str(cmd)
-            .with_context(|| format!("Failed to parse an action op from string: {}", cmd))?;
+        let op: Self = serde_json::from_str(cmd)?;
         Ok(op)
     }
 }

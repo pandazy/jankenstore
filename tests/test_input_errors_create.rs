@@ -25,6 +25,10 @@ fn test_parsing_errors() -> Result<()> {
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 
+    let result = CreateOp::from_str(r#"{ "BadOp": ["song", 1] }"#);
+    assert!(result.is_err());
+    assert_snapshot!(result.unwrap_err());
+
     Ok(())
 }
 
