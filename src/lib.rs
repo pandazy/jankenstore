@@ -15,6 +15,7 @@
 //!    - [action::CreateOp::Create]
 //!    - [action::CreateOp::CreateChild]
 //! - [action::ReadOp]
+//!    - [action::ReadOp::All]
 //!    - [action::ReadOp::ByPk]
 //!    - [action::ReadOp::Children]
 //!    - [action::ReadOp::Peers]
