@@ -3,12 +3,13 @@ use helpers::initialize_db;
 
 use insta::assert_snapshot;
 use jankenstore::{
-    action::commands::ReadCommand, sqlite::{
+    action::commands::ReadCommand,
+    sqlite::{
         basics::{CountConfig, FetchConfig},
         read::count,
         schema::fetch_schema_family,
         shift::val::v_txt,
-    }
+    },
 };
 
 use anyhow::Result;
@@ -46,6 +47,22 @@ fn test_count() -> Result<()> {
     )?;
     assert_eq!(result, 3);
 
+    Ok(())
+}
+
+#[test]
+fn test_read_all() -> Result<()> {
+    let conn = Connection::open_in_memory()?;
+    initialize_db(&conn)?;
+
+    let schema_family = fetch_schema_family(&conn, &[], "", "")?;
+
+    let ReadCommand { op: read_op } = from_value(json!({
+        "op": {"All": "song"}
+    }))?;
+
+    let records = read_op.with_schema(&conn, &schema_family, None)?;
+    assert_eq!(records.len(), 6);
     Ok(())
 }
 

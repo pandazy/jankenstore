@@ -21,6 +21,10 @@ use serde_json::Value as JsonValue;
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ReadOp {
     ///
+    /// Read all records in a table
+    All(String),
+
+    ///
     /// Read records in a table by their primary keys
     /// # Arguments
     /// * `SrcAndKeys` - The primary key values of the records to read from the specified table
@@ -68,6 +72,7 @@ impl ReadOp {
             Ok(results)
         };
         let results = match self {
+            Self::All(table) => read::all(conn, schema_family, table, fetch_opt),
             Self::ByPk(SrcAndKeys { src, keys }) => {
                 let pk_vals = get_pk_vals(src, keys)?;
                 read::by_pk(conn, schema_family, src, &pk_vals, fetch_opt)
