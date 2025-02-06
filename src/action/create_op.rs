@@ -70,11 +70,11 @@ impl CreateOp {
         map_input: T,
     ) -> Result<()>
     where
-        T: FnOnce(&RecordOwned) -> RecordOwned,
+        T: FnOnce(&RecordOwned, &str) -> RecordOwned,
     {
         let get_payload_map = |data_src: &str, payload| -> Result<RecordOwned> {
             let fresh_map = json_to_val_map_by_schema(schema_family, data_src, payload);
-            fresh_map.map(|input| map_input(&input))
+            fresh_map.map(|input| map_input(&input, data_src))
         };
         match self {
             Self::Create(data_src, payload) => {
