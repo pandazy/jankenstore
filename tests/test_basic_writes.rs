@@ -65,7 +65,7 @@ fn test_create_with_input_map() -> Result<()> {
 
         let mut record = record.clone();
         record.insert("memo".to_owned(), v_txt("Roger that!"));
-        record
+        Ok(record)
     })?;
 
     let by_pk_input = json!({
@@ -162,7 +162,7 @@ fn test_create_child_with_input_map() -> Result<()> {
     create_op.run_map(&conn, &schema_family, |record, _| {
         let mut record = record.clone();
         record.insert("memo".to_owned(), v_txt("60s!"));
-        record
+        Ok(record)
     })?;
 
     let records = read_op.run(&conn, &schema_family, None)?;
@@ -240,7 +240,7 @@ fn test_update_with_run_map() -> Result<()> {
 
         let mut record = record.clone();
         record.insert("memo".to_owned(), v_txt("Roger that!"));
-        record
+        Ok(record)
     })?;
 
     let read_song: ReadOp = from_value(json!({
@@ -302,7 +302,7 @@ fn test_update_children_with_run_map() -> Result<()> {
     update_op.run_map(&conn, &schema_family, |record, _| {
         let mut record = record.clone();
         record.insert("memo".to_owned(), v_txt("Roger that!"));
-        record
+        Ok(record)
     })?;
     let records = read_op.run(&conn, &schema_family, None)?;
 
