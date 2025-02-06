@@ -55,7 +55,15 @@ pub fn all(
 ) -> Result<RecordListOwned> {
     let schema = schema_family.try_get_schema(table)?;
     let display_cols = fetch_config_opt.and_then(|cfg| cfg.display_cols);
-    verify_cols(schema, display_cols.unwrap_or_default())?;
+
+    // only verify columns if group_by is not set
+    let group_by = fetch_config_opt
+        .unwrap_or_default()
+        .group_by
+        .unwrap_or_default();
+    if group_by.trim().is_empty() {
+        verify_cols(schema, display_cols.unwrap_or_default())?;
+    }
     basics::read(conn, table, fetch_config_opt)
 }
 
@@ -225,7 +233,11 @@ mod tests {
                 Some(FetchConfig {
                     display_cols: Some(&["name"]),
                     is_distinct: true,
-                    where_config: None
+                    where_config: None,
+                    group_by: None,
+                    order_by: None,
+                    limit: None,
+                    offset: None
                 })
             )?
             .len(),

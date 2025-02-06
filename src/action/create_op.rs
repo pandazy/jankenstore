@@ -40,24 +40,13 @@ impl CreateOp {
         };
         match self {
             Self::Create(data_src, payload) => {
-                add::create(
-                    conn,
-                    schema_family,
-                    data_src,
-                    &get_payload_map(data_src, payload)?,
-                    true,
-                )?;
+                let payload = get_payload_map(data_src, payload)?;
+                add::create(conn, schema_family, data_src, &payload, true)?;
             }
             Self::CreateChild(OneOnOneParentBond { src, parents }, payload) => {
                 let parent_info = get_one_on_one_parent_info(schema_family, src, parents)?;
-                add::create_child_of(
-                    conn,
-                    schema_family,
-                    src,
-                    &parent_info,
-                    &get_payload_map(src, payload)?,
-                    true,
-                )?;
+                let payload = get_payload_map(src, payload)?;
+                add::create_child_of(conn, schema_family, src, &parent_info, &payload, true)?;
             }
         }
         Ok(())

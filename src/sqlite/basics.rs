@@ -43,11 +43,19 @@ pub fn is_empty(val1: &types::Value) -> bool {
 /// * `is_distinct` - whether to use the DISTINCT keyword in the SQL query
 /// * `display_cols` - the fields to be displayed in the result
 /// * `where_config` - the where clause and the parameters for the condition of the query
+/// * `order_by` - the field to order the results by
+/// * `limit` - the maximum number of records to return
+/// * `offset` - the number of records to skip before returning the results
+/// * `group_by` - the field to group the results by
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct FetchConfig<'a> {
     pub is_distinct: bool,
     pub display_cols: Option<&'a [&'a str]>,
     pub where_config: Option<WhereConfig<'a>>,
+    pub order_by: Option<&'a str>,
+    pub limit: Option<i64>,
+    pub offset: Option<i64>,
+    pub group_by: Option<&'a str>,
 }
 
 ///
@@ -83,12 +91,35 @@ pub fn read(
         display_fields.join(", "),
         table_name
     );
+    let group_by = match fetch_config.group_by {
+        Some(field) => format!(
+            " GROUP BY {}",
+            field
+                .chars()
+                .filter(|c| !c.is_whitespace())
+                .collect::<String>()
+        ),
+        None => String::new(),
+    };
+    let order_by = match fetch_config.order_by {
+        Some(field) => format!(" ORDER BY {}", field.trim()),
+        None => String::new(),
+    };
+    let limit = match fetch_config.limit {
+        Some(limit) => format!(" LIMIT {}", limit),
+        None => String::new(),
+    };
+    let offset = match fetch_config.offset {
+        Some(offset) => format!(" OFFSET {}", offset),
+        None => String::new(),
+    };
     let where_config = match fetch_config_opt {
         Some(cfg) => cfg.where_config,
         None => None,
     };
     let (where_q_clause, where_q_params) = sql::standardize_q_config(where_config, "WHERE");
     let sql = format!("{} {}", sql, where_q_clause);
+    let sql = format!("{}{}{}{}{}", sql, group_by, order_by, limit, offset);
     let mut stmt = conn.prepare(&sql)?;
     let mut rows = stmt.query(params_from_iter(&where_q_params))?;
     let mut result = Vec::new();

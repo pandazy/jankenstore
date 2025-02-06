@@ -101,7 +101,11 @@
 //! let result = op.run(&conn, &schema_family, Some(FetchConfig{
 //!    display_cols: Some(&["name", "memo"]),
 //!    is_distinct: true,
-//!    where_config: Some(("memo like '%'||?||'%'", &[v_txt("big")]))
+//!    where_config: Some(("memo like '%'||?||'%'", &[v_txt("big")])),
+//!    group_by: None,
+//!    order_by: None,
+//!    limit: None,
+//!    offset: None
 //! })).unwrap();
 //! assert_eq!(result.len(), 1);
 //! assert_eq!(result[0]["name"], "Alice");

@@ -42,23 +42,19 @@ impl UpdateOp {
         };
         match self {
             Self::Update(SrcAndKeys { src, keys }, payload) => {
-                update::update_by_pk(
-                    conn,
-                    schema_family,
-                    src,
-                    &get_payload_map(src, payload)?,
-                    get_pk_vals(schema_family, src, keys)?.as_slice(),
-                    None,
-                    true,
-                )?;
+                let keys = get_pk_vals(schema_family, src, keys)?;
+                let payload = get_payload_map(src, payload)?;
+                update::update_by_pk(conn, schema_family, src, &payload, &keys, None, true)?;
             }
             Self::UpdateChildren(ParentHood { src, parents }, payload) => {
+                let parents = get_parent_info(schema_family, src, parents)?;
+                let payload = get_payload_map(src, payload)?;
                 update::update_children_of(
                     conn,
                     schema_family,
                     src,
-                    &get_parent_info(schema_family, src, parents)?,
-                    &get_payload_map(src, payload)?,
+                    &parents,
+                    &payload,
                     None,
                     true,
                 )?;
