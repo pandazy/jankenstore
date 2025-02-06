@@ -37,7 +37,7 @@ impl PeerOp {
     /// # Arguments
     /// * `conn` - A connection to the database
     /// * `schema_family` - The schema family of the database
-    pub fn with_schema(&self, conn: &Connection, schema_family: &SchemaFamily) -> Result<()> {
+    pub fn run(&self, conn: &Connection, schema_family: &SchemaFamily) -> Result<()> {
         let get_input = |peer_map| -> Result<HashMap<String, Vec<types::Value>>> {
             let pair = get_peer_pair(schema_family, peer_map)?;
             Ok(HashMap::from([pair.0, pair.1]))

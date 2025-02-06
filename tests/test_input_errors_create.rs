@@ -47,7 +47,7 @@ fn test_wrong_table() -> Result<()> {
         "Create": ["wrong_table", input]
     }))?;
 
-    let result = create_op.with_schema(&conn, &schema_family);
+    let result = create_op.run(&conn, &schema_family);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 
@@ -69,7 +69,7 @@ fn test_missing_empty_fields() -> Result<()> {
         "Create": ["song", &input]
     }))?;
 
-    let result = create_op.with_schema(&conn, &schema_family);
+    let result = create_op.run(&conn, &schema_family);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 
@@ -79,7 +79,7 @@ fn test_missing_empty_fields() -> Result<()> {
             "artist_id": 1,
         }]
     }))?;
-    let result = create_op.with_schema(&conn, &schema_family);
+    let result = create_op.run(&conn, &schema_family);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 
@@ -112,7 +112,7 @@ fn test_unknown_fields() -> Result<()> {
     let create_op: CreateOp = from_value(json!({
         "Create": ["song", input]
     }))?;
-    let result = create_op.with_schema(&conn, &schema_family);
+    let result = create_op.run(&conn, &schema_family);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 
@@ -134,7 +134,7 @@ fn test_wrong_type_fields() -> Result<()> {
     let create_op: CreateOp = from_value(json!({
         "Create": ["song", &input]
     }))?;
-    let result = create_op.with_schema(&conn, &schema_family);
+    let result = create_op.run(&conn, &schema_family);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 
@@ -146,7 +146,7 @@ fn test_wrong_type_fields() -> Result<()> {
             "file": "N/A"
         }]
     }))?;
-    let result = create_op.with_schema(&conn, &schema_family);
+    let result = create_op.run(&conn, &schema_family);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 

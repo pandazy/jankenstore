@@ -36,9 +36,53 @@ impl UpdateOp {
     /// # Arguments
     /// * `conn` - A connection to the database
     /// * `schema_family` - The schema family of the database
-    pub fn with_schema(&self, conn: &Connection, schema_family: &SchemaFamily) -> Result<()> {
+    pub fn run(&self, conn: &Connection, schema_family: &SchemaFamily) -> Result<()> {
         let get_payload_map = |data_src: &str, payload| -> Result<RecordOwned> {
             json_to_val_map_by_schema(schema_family, data_src, payload)
+        };
+        match self {
+            Self::Update(SrcAndKeys { src, keys }, payload) => {
+                let keys = get_pk_vals(schema_family, src, keys)?;
+                let payload = get_payload_map(src, payload)?;
+                update::update_by_pk(conn, schema_family, src, &payload, &keys, None, true)?;
+            }
+            Self::UpdateChildren(ParentHood { src, parents }, payload) => {
+                let parents = get_parent_info(schema_family, src, parents)?;
+                let payload = get_payload_map(src, payload)?;
+                update::update_children_of(
+                    conn,
+                    schema_family,
+                    src,
+                    &parents,
+                    &payload,
+                    None,
+                    true,
+                )?;
+            }
+        }
+        Ok(())
+    }
+
+    ///
+    /// Execute the operation on the database with a map function
+    /// that modifies the input that received from the payload.
+    /// For example, it might be useful for internal data processing like password hashing, uuid generation, etc.
+    /// # Arguments
+    /// * `conn` - A connection to the database
+    /// * `schema_family` - The schema family of the database
+    /// * `map_input` - The function that modifies the input record
+    pub fn run_map<T>(
+        &self,
+        conn: &Connection,
+        schema_family: &SchemaFamily,
+        map_input: T,
+    ) -> Result<()>
+    where
+        T: FnOnce(&RecordOwned) -> RecordOwned,
+    {
+        let get_payload_map = |data_src: &str, payload| -> Result<RecordOwned> {
+            let fresh_map = json_to_val_map_by_schema(schema_family, data_src, payload);
+            fresh_map.map(|input| map_input(&input))
         };
         match self {
             Self::Update(SrcAndKeys { src, keys }, payload) => {

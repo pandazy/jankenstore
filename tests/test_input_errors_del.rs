@@ -22,7 +22,7 @@ fn test_delete_wrong_table() -> Result<()> {
             "keys": [1]
         }
     }))?;
-    let result = del_op.with_schema(&conn, &schema_family, None);
+    let result = del_op.run(&conn, &schema_family, None);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
     Ok(())
@@ -42,7 +42,7 @@ fn test_delete_wrong_parenthood() -> Result<()> {
         }
     }))?;
 
-    let result = del_op.with_schema(&conn, &schema_family, None);
+    let result = del_op.run(&conn, &schema_family, None);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
     Ok(())

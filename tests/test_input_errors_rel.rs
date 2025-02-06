@@ -27,7 +27,7 @@ fn test_link_of_wrong_peers() -> Result<()> {
             "artist": [1]
         }
     }))?;
-    let result = rel_op.with_schema(&conn, &schema_family);
+    let result = rel_op.run(&conn, &schema_family);
     assert!(result.is_err());
     assert!(result.unwrap_err().to_string().contains("is not a peer of"));
 
@@ -48,7 +48,7 @@ fn test_wrong_numbers_of_peers() -> Result<()> {
             "song": [1, 3]
         }
     }))?;
-    let result = rel_op.with_schema(&conn, &schema_family);
+    let result = rel_op.run(&conn, &schema_family);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 
@@ -57,7 +57,7 @@ fn test_wrong_numbers_of_peers() -> Result<()> {
             "album": [1]
         }
     }))?;
-    let result = rel_op.with_schema(&conn, &schema_family);
+    let result = rel_op.run(&conn, &schema_family);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 

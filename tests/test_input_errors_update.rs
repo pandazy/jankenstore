@@ -33,7 +33,7 @@ fn test_wrong_table() -> Result<()> {
             "keys": [1],
         }, input]
     }))?;
-    let result = update_op.with_schema(&conn, &schema_family);
+    let result = update_op.run(&conn, &schema_family);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 
@@ -53,7 +53,7 @@ fn test_missing_empty_fields() -> Result<()> {
             "keys": [1],
         }, { "name": "" }]
     }))?;
-    let result = update_op.with_schema(&conn, &schema_family);
+    let result = update_op.run(&conn, &schema_family);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 
@@ -97,7 +97,7 @@ fn test_unknown_fields() -> Result<()> {
         }, input]
     }))?;
 
-    let result = update_op.with_schema(&conn, &schema_family);
+    let result = update_op.run(&conn, &schema_family);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 
@@ -122,7 +122,7 @@ fn test_wrong_type_fields() -> Result<()> {
             "keys": [1],
         }, input]
     }))?;
-    let result = update_op.with_schema(&conn, &schema_family);
+    let result = update_op.run(&conn, &schema_family);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 
@@ -136,7 +136,7 @@ fn test_wrong_type_fields() -> Result<()> {
             "keys": [1],
         }, album_update]
     }))?;
-    let result = update_op.with_schema(&conn, &schema_family);
+    let result = update_op.run(&conn, &schema_family);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 
@@ -150,7 +150,7 @@ fn test_wrong_type_fields() -> Result<()> {
             "keys": [1],
         }, album_update]
     }))?;
-    let result = update_op.with_schema(&conn, &schema_family);
+    let result = update_op.run(&conn, &schema_family);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 
@@ -174,7 +174,7 @@ fn test_update_fk() -> Result<()> {
             "keys": [1],
         }, input]
     }))?;
-    let result = update_op.with_schema(&conn, &schema_family);
+    let result = update_op.run(&conn, &schema_family);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 
