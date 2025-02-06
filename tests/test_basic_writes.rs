@@ -60,7 +60,9 @@ fn test_create_with_input_map() -> Result<()> {
     });
 
     let create_op: CreateOp = from_value(json!({"Create": ["song", input]}))?;
-    create_op.run_map(&conn, &schema_family, |record| {
+    create_op.run_map(&conn, &schema_family, |record, src| {
+        assert_eq!(src, "song");
+
         let mut record = record.clone();
         record.insert("memo".to_owned(), v_txt("Roger that!"));
         record
@@ -157,7 +159,7 @@ fn test_create_child_with_input_map() -> Result<()> {
         }
         "#,
     )?;
-    create_op.run_map(&conn, &schema_family, |record| {
+    create_op.run_map(&conn, &schema_family, |record, _| {
         let mut record = record.clone();
         record.insert("memo".to_owned(), v_txt("60s!"));
         record
@@ -233,7 +235,9 @@ fn test_update_with_run_map() -> Result<()> {
     let update_op: UpdateOp = from_value(json!({
         "Update": [{ "src": "song", "keys": [1] }, input]
     }))?;
-    update_op.run_map(&conn, &schema_family, |record| {
+    update_op.run_map(&conn, &schema_family, |record, src| {
+        assert_eq!(src, "song");
+
         let mut record = record.clone();
         record.insert("memo".to_owned(), v_txt("Roger that!"));
         record
@@ -295,7 +299,7 @@ fn test_update_children_with_run_map() -> Result<()> {
         }
         "#,
     )?;
-    update_op.run_map(&conn, &schema_family, |record| {
+    update_op.run_map(&conn, &schema_family, |record, _| {
         let mut record = record.clone();
         record.insert("memo".to_owned(), v_txt("Roger that!"));
         record
