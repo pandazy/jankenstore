@@ -33,8 +33,7 @@ impl DelOp {
     /// # Arguments
     /// * `conn` - A connection to the database
     /// * `schema_family` - The schema family of the database
-    /// * `payload` - The data to write
-    ///
+    /// * `where_config` - The configuration for filtering the records to delete
     pub fn run(
         &self,
         conn: &Connection,

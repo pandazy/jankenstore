@@ -65,6 +65,12 @@ impl UpdateOp {
 
     ///
     /// Execute the operation on the database with a map function
+    /// that modifies the input that received from the payload.
+    /// For example, it might be useful for internal data processing like password hashing, uuid generation, etc.
+    /// # Arguments
+    /// * `conn` - A connection to the database
+    /// * `schema_family` - The schema family of the database
+    /// * `map_input` - The function that modifies the input record
     pub fn run_map<T>(
         &self,
         conn: &Connection,

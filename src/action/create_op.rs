@@ -34,6 +34,9 @@ pub enum CreateOp {
 
 impl CreateOp {
     /// Execute the operation on the database
+    /// # Arguments
+    /// * `conn` - A connection to the database
+    /// * `schema_family` - The schema family of the database
     pub fn run(&self, conn: &Connection, schema_family: &SchemaFamily) -> Result<()> {
         let get_payload_map = |data_src: &str, payload| -> Result<RecordOwned> {
             json_to_val_map_by_schema(schema_family, data_src, payload)
@@ -55,6 +58,11 @@ impl CreateOp {
     /// Execute the operation on the database with a map function
     /// that modifies the input that received from the payload.
     /// For example, it might be useful for internal data processing like password hashing, uuid generation, etc.
+    /// # Arguments
+    /// * `conn` - A connection to the database
+    /// * `schema_family` - The schema family of the database
+    /// * `map_input` - The function that modifies the input record
+    ///                - it receives the input record and returns the modified record
     pub fn run_map<T>(
         &self,
         conn: &Connection,
