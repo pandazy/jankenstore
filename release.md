@@ -1,3 +1,1 @@
--   Renamed `with_schema` to `run` to be more accurate with its purpose
--   Added `run_map` to provide customization of inputs
--   Added common support for group-by order-by, limit and offset
+-   Added source table to run_map's callback so that when used in a generic environment, the context of the input is known
