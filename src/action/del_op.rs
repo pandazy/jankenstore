@@ -1,5 +1,5 @@
 use super::{
-    payload::{ParentHood, ParsableOp, SrcAndKeys},
+    payload::{ParentHood, ParsableOp, ReadSrc, SrcAndKeys},
     utils::{get_parent_info, get_pk_vals},
 };
 use crate::sqlite::{delete, schema::SchemaFamily, sql::WhereConfig};
@@ -65,3 +65,12 @@ impl DelOp {
 }
 
 impl ParsableOp<'_> for DelOp {}
+
+impl ReadSrc for DelOp {
+    fn src(&self) -> &str {
+        match self {
+            Self::Delete(SrcAndKeys { src, .. }) => src,
+            Self::DeleteChildren(ParentHood { src, .. }) => src,
+        }
+    }
+}

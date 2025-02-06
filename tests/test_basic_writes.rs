@@ -2,7 +2,10 @@ mod helpers;
 use helpers::initialize_db;
 
 use jankenstore::{
-    action::{payload::ParsableOp, CreateOp, DelOp, PeerOp, ReadOp, UpdateOp},
+    action::{
+        payload::{ParsableOp, ReadSrc},
+        CreateOp, DelOp, PeerOp, ReadOp, UpdateOp,
+    },
     sqlite::{schema::fetch_schema_family, shift::val::v_txt},
 };
 
@@ -60,6 +63,7 @@ fn test_create_with_input_map() -> Result<()> {
     });
 
     let create_op: CreateOp = from_value(json!({"Create": ["song", input]}))?;
+    assert_eq!(create_op.src(), "song");
     create_op.run_map(&conn, &schema_family, |record, src| {
         assert_eq!(src, "song");
 
@@ -186,6 +190,7 @@ fn test_update() -> Result<()> {
     let update_op: UpdateOp = from_value(json!({
         "Update": [{ "src": "song", "keys": [1] }, input]
     }))?;
+    assert_eq!(update_op.src(), "song");
     update_op.run(&conn, &schema_family)?;
 
     let read_song: ReadOp = from_value(json!({
@@ -383,11 +388,11 @@ fn test_delete() -> Result<()> {
             "keys": [1]
         }
     }))?;
-
     assert_eq!(read_op.run(&conn, &schema_family, None)?.len(), 1);
 
     let del_op = DelOp::from_str(r#"{ "Delete": { "src": "song", "keys": [1] } }"#)?;
     del_op.run(&conn, &schema_family, None)?;
+    assert_eq!(del_op.src(), "song");
 
     assert_eq!(read_op.run(&conn, &schema_family, None)?.len(), 0);
     Ok(())

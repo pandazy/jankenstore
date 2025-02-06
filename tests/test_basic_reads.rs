@@ -3,7 +3,10 @@ use helpers::initialize_db;
 
 use insta::assert_snapshot;
 use jankenstore::{
-    action::{payload::ParsableOp, ReadOp},
+    action::{
+        payload::{ParsableOp, ReadSrc},
+        ReadOp,
+    },
     sqlite::{
         basics::{CountConfig, FetchConfig},
         read::count,
@@ -69,6 +72,7 @@ fn test_read_all() -> Result<()> {
     let schema_family = fetch_schema_family(&conn, &[], "", "")?;
 
     let read_op = ReadOp::from_str(r#"{ "All": "song" }"#)?;
+    assert_eq!(read_op.src(), "song");
 
     let records = read_op.run(&conn, &schema_family, None)?;
     assert_eq!(records.len(), 6);
