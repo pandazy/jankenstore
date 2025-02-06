@@ -1,6 +1,6 @@
 use super::{
     get_parent_info, get_peer_info,
-    payload::{ParentHood, ParsableOp, PeerHood, SrcAndKeys},
+    payload::{ParentHood, ParsableOp, PeerHood, ReadSrc, SrcAndKeys},
 };
 use crate::sqlite::{
     basics::FetchConfig,
@@ -115,3 +115,14 @@ impl ReadOp {
 }
 
 impl ParsableOp<'_> for ReadOp {}
+impl ReadSrc for ReadOp {
+    fn src(&self) -> &str {
+        match self {
+            Self::All(table) => table,
+            Self::ByPk(SrcAndKeys { src, .. }) => src,
+            Self::Children(ParentHood { src, .. }) => src,
+            Self::Peers(PeerHood { src, .. }) => src,
+            Self::Search(table, ..) => table,
+        }
+    }
+}

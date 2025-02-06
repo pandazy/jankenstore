@@ -39,3 +39,11 @@ pub trait ParsableOp<'a>: Debug + Serialize + Deserialize<'a> {
         Ok(op)
     }
 }
+
+///
+/// A trait for reading the table source of an action op
+pub trait ReadSrc {
+    ///
+    /// Get the table source of the action op
+    fn src(&self) -> &str;
+}
