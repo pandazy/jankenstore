@@ -35,7 +35,7 @@ impl DelOp {
     /// * `schema_family` - The schema family of the database
     /// * `payload` - The data to write
     ///
-    pub fn with_schema(
+    pub fn run(
         &self,
         conn: &Connection,
         schema_family: &SchemaFamily,

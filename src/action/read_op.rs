@@ -58,7 +58,7 @@ impl ReadOp {
     /// * `conn` - A connection to the database
     /// * `schema_family` - The schema family of the database
     /// * `fetch_opt` - The configuration for fetching the records
-    pub fn with_schema(
+    pub fn run(
         &self,
         conn: &Connection,
         schema_family: &SchemaFamily,

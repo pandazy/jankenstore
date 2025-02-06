@@ -33,7 +33,7 @@ fn test_count() -> Result<()> {
     "#,
     )?;
 
-    let result = input.with_schema(&conn, &schema_family, None);
+    let result = input.run(&conn, &schema_family, None);
     assert_eq!(result?.len(), 4);
 
     let result = count(
@@ -70,7 +70,7 @@ fn test_read_all() -> Result<()> {
 
     let read_op = ReadOp::from_str(r#"{ "All": "song" }"#)?;
 
-    let records = read_op.with_schema(&conn, &schema_family, None)?;
+    let records = read_op.run(&conn, &schema_family, None)?;
     assert_eq!(records.len(), 6);
     Ok(())
 }
@@ -91,11 +91,11 @@ fn test_reading_peers() -> Result<()> {
             }"#,
     )?;
 
-    let records = read_op.with_schema(&conn, &schema_family, None)?;
+    let records = read_op.run(&conn, &schema_family, None)?;
     assert_eq!(records.len(), 4);
     assert_eq!(records[0]["name"], json!("When the Saints Go Marching In"));
 
-    let records = read_op.with_schema(
+    let records = read_op.run(
         &conn,
         &schema_family,
         Some(FetchConfig {
@@ -121,7 +121,7 @@ fn test_search() -> Result<()> {
         r#"{ "Search": ["song", "name", "Marching"] }"#,
     )?;
 
-    let records = read_op.with_schema(&conn, &schema_family, None)?;
+    let records = read_op.run(&conn, &schema_family, None)?;
     assert_eq!(records.len(), 1);
     assert_eq!(records[0]["name"], json!("When the Saints Go Marching In"));
 
@@ -129,7 +129,7 @@ fn test_search() -> Result<()> {
         "Search": ["song", "name", "ar"]
     }))?;
 
-    let records = read_op.with_schema(&conn, &schema_family, None)?;
+    let records = read_op.run(&conn, &schema_family, None)?;
     assert_eq!(records.len(), 4);
     let names = records
         .iter()

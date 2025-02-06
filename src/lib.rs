@@ -34,7 +34,7 @@
 //! [sqlite::schema::fetch_schema_family] can be used to automatically extract the schema of the database
 //! and use it to validate the input data, reducing the risk of malicious attacks
 //!
-//! * It should be used together with the actions' `with_schema` method to validate the input data
+//! * It should be used together with the actions' [run](action::ReadOp::run) (or additionally, for Create/Update ops, [run_map](action::CreateOp::run_map)) method to validate the input data
 //!
 //!
 //! ## Example of using a Read action
@@ -80,7 +80,7 @@
 //!               "keys": [2]
 //!            }
 //!       })).unwrap();
-//! let result = op.with_schema(&conn, &schema_family, None).unwrap();
+//! let result = op.run(&conn, &schema_family, None).unwrap();
 //! assert_eq!(result.len(), 1);
 //! assert_eq!(result[0]["name"], "Alice");
 //! assert_eq!(result[0]["memo"], "little");
@@ -92,13 +92,13 @@
 //! // the JSON request is received as a string, then
 //! let query_param = r#"{ "Search": ["myexample", "name", "Alice"] }"#;
 //! let op = ReadOp::from_str(query_param).unwrap();
-//! let result = op.with_schema(&conn, &schema_family, None).unwrap();
+//! let result = op.run(&conn, &schema_family, None).unwrap();
 //! assert_eq!(result.len(), 2);
 //! assert_eq!(result[0]["name"], "Alice");
 //! assert_eq!(result[1]["name"], "Alice");
 //!
 //! // Add further condition to the search by using a FetchConfig
-//! let result = op.with_schema(&conn, &schema_family, Some(FetchConfig{
+//! let result = op.run(&conn, &schema_family, Some(FetchConfig{
 //!    display_cols: Some(&["name", "memo"]),
 //!    is_distinct: true,
 //!    where_config: Some(("memo like '%'||?||'%'", &[v_txt("big")]))

@@ -25,7 +25,7 @@ fn test_wrong_table() -> Result<()> {
     let schema_family = fetch_schema_family(&conn, &[], "", "")?;
 
     let read_op: ReadOp = from_value(json!({"ByPk": [ "wrong_table", [1]]}))?;
-    let result = read_op.with_schema(&conn, &schema_family, None);
+    let result = read_op.run(&conn, &schema_family, None);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 
@@ -87,7 +87,7 @@ fn test_wrong_parenthood() -> Result<()> {
             }
         }
     }))?;
-    let result = read_op.with_schema(&conn, &schema_family, None);
+    let result = read_op.run(&conn, &schema_family, None);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 
@@ -99,7 +99,7 @@ fn test_wrong_parenthood() -> Result<()> {
             }
         }
     }))?;
-    let result = read_op.with_schema(&conn, &schema_family, None);
+    let result = read_op.run(&conn, &schema_family, None);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 
@@ -121,7 +121,7 @@ fn test_wrong_peer() -> Result<()> {
             }
         }
     }))?;
-    let result = read_op.with_schema(&conn, &schema_family, None);
+    let result = read_op.run(&conn, &schema_family, None);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 
@@ -133,7 +133,7 @@ fn test_wrong_peer() -> Result<()> {
             }
         }
     }))?;
-    let result = read_op.with_schema(&conn, &schema_family, None);
+    let result = read_op.run(&conn, &schema_family, None);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 
@@ -149,7 +149,7 @@ fn test_wrong_search_keyword() -> Result<()> {
 
     let search_op: ReadOp = from_value(json!({"Search": ["song", "id", "1"]}))?;
 
-    let result = search_op.with_schema(&conn, &schema_family, None);
+    let result = search_op.run(&conn, &schema_family, None);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 
