@@ -1,7 +1,9 @@
 //! # Overview
 //!
 //! This library is designed to provide simple interfaces
-//! to complete basic CRUD operations in a SQLite database, by leveraging [rusqlite]
+//! to complete basic CRUD operations in a SQLite database, by leveraging [rusqlite].
+//!
+//! This should satisfy 90% of the creator's local app needs
 //!
 //! # Highlighted Features
 //! ## Actions
