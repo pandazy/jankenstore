@@ -28,7 +28,7 @@ fn test_count() -> Result<()> {
     let result = count(&conn, &schema_family, "song", None)?;
     assert_eq!(result, 6);
 
-    let input = ReadOp::from_str(
+    let search_op = ReadOp::from_str(
         r#"
         {
             "Search": ["song", "name", "ar"]
@@ -36,7 +36,8 @@ fn test_count() -> Result<()> {
     "#,
     )?;
 
-    let result = input.run(&conn, &schema_family, None);
+    let result = search_op.run(&conn, &schema_family, None);
+    assert_eq!(search_op.src(), "song");
     assert_eq!(result?.len(), 4);
 
     let result = count(
@@ -220,6 +221,7 @@ fn test_reading_peers() -> Result<()> {
     )?;
 
     let records = read_op.run(&conn, &schema_family, None)?;
+    assert_eq!(read_op.src(), "song");
     assert_eq!(records.len(), 4);
     assert_eq!(records[0]["name"], json!("When the Saints Go Marching In"));
 

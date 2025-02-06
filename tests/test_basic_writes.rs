@@ -119,6 +119,7 @@ fn test_create_child() -> Result<()> {
         "#,
     )?;
     create_op.run(&conn, &schema_family)?;
+    assert_eq!(create_op.src(), "song");
 
     let records = read_op.run(&conn, &schema_family, None)?;
 
@@ -310,6 +311,7 @@ fn test_update_children_with_run_map() -> Result<()> {
         Ok(record)
     })?;
     let records = read_op.run(&conn, &schema_family, None)?;
+    assert_eq!(update_op.src(), "song");
 
     // Verify the state after update
     assert_eq!(records.len(), 2);
@@ -437,6 +439,7 @@ fn test_delete_children() -> Result<()> {
         }
     }))?;
     del_op.run(&conn, &schema_family, None)?;
+    assert_eq!(del_op.src(), "song");
 
     let records = read_op.run(&conn, &schema_family, None)?;
 

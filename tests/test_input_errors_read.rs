@@ -3,7 +3,7 @@ mod helpers;
 use helpers::initialize_db;
 
 use jankenstore::{
-    action::ReadOp,
+    action::{payload::ReadSrc, ReadOp},
     sqlite::{
         basics::{CountConfig, FetchConfig},
         read::{self, count},
@@ -26,6 +26,7 @@ fn test_wrong_table() -> Result<()> {
 
     let read_op: ReadOp = from_value(json!({"ByPk": [ "wrong_table", [1]]}))?;
     let result = read_op.run(&conn, &schema_family, None);
+    assert_eq!(read_op.src(), "wrong_table");
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 
@@ -88,6 +89,7 @@ fn test_wrong_parenthood() -> Result<()> {
         }
     }))?;
     let result = read_op.run(&conn, &schema_family, None);
+    assert_eq!(read_op.src(), "song");
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
 
