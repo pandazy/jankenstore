@@ -1,1 +1,1 @@
--   Added source table to run_map's callback so that when used in a generic environment, the context of the input is known
+-   Updated run_map's callback returns to improve the error handling
