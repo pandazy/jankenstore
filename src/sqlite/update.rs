@@ -103,7 +103,7 @@ pub fn update_children_of(
     for (parent_table, parent_vals) in parent_info {
         verify_parenthood(schema_family, child_table, parent_table, parent_vals)?;
     }
-    let combined_q_config = get_fk_union_config(parent_info, where_config_opt);
+    let combined_q_config = get_fk_union_config(schema_family, parent_info, where_config_opt)?;
     update_all(
         conn,
         schema_family,

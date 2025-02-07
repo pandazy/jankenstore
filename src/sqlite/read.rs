@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use super::{
     basics::{total, CountConfig},
-    input_utils::{fk_name, verify_parenthood},
+    input_utils::{get_fk_name, verify_parenthood},
     peer::peer_matching_clause,
     schema::Schema,
     shift::RecordListOwned,
@@ -135,7 +135,7 @@ pub fn children_of(
         verify_parenthood(schema_family, child_table, parent_table, parent_vals)?;
     }
     let where_config = fetch_config_opt.and_then(|cfg| cfg.where_config);
-    let combined_q_config = get_fk_union_config(parent_info, where_config);
+    let combined_q_config = get_fk_union_config(schema_family, parent_info, where_config)?;
     let updated_fetch_config = FetchConfig {
         where_config: Some((combined_q_config.0.as_str(), combined_q_config.1.as_slice())),
         ..fetch_config_opt.unwrap_or_default()
@@ -165,7 +165,7 @@ pub fn peers_of(
     source_table: &str,
     peer_config: &HashMap<String, Vec<types::Value>>,
     fetch_config_opt: Option<FetchConfig>,
-) -> Result<RecordListOwned> {
+) -> anyhow::Result<RecordListOwned> {
     let where_config = fetch_config_opt.and_then(|cfg| cfg.where_config);
     let rel_table = schema_family.try_get_peer_link_table_of(source_table)?;
     verify_peers(
@@ -175,8 +175,8 @@ pub fn peers_of(
             .map(|(t, _)| t.as_str())
             .collect::<Vec<_>>(),
     )?;
-    let mut fk_union_config = get_fk_union_config(peer_config, where_config);
-    let source_fk_name = fk_name(source_table);
+    let mut fk_union_config = get_fk_union_config(schema_family, peer_config, where_config)?;
+    let source_fk_name = get_fk_name(source_table, schema_family)?;
     let matching_clause = peer_matching_clause(
         rel_table,
         &source_fk_name,

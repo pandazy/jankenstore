@@ -149,13 +149,19 @@ pub fn json_to_fk_by_schema(
     parent_name: &str,
     json: &serde_json::Value,
 ) -> Result<types::Value> {
-    json_to_val_by_schema(schema_family, table_name, &fk_name(parent_name), json)
+    json_to_val_by_schema(
+        schema_family,
+        table_name,
+        &get_fk_name(parent_name, schema_family)?,
+        json,
+    )
 }
 
 ///
 /// Get the foreign key column name of a main in its reference table
-pub fn fk_name(main_table_name: &str) -> String {
-    format!("{}_id", main_table_name)
+pub fn get_fk_name(main_table_name: &str, schema_family: &SchemaFamily) -> Result<String> {
+    let schema = schema_family.try_get_schema(main_table_name)?;
+    Ok(format!("{}_{}", main_table_name, schema.pk))
 }
 
 ///
@@ -235,7 +241,8 @@ pub fn verify_fk(
     fk_val: &[types::Value],
 ) -> Result<()> {
     for fk in fk_val {
-        verify_column_val(schema_family, table, &fk_name(parent_table), fk)?;
+        let fk_name = get_fk_name(parent_table, schema_family)?;
+        verify_column_val(schema_family, table, &fk_name, fk)?;
     }
     Ok(())
 }

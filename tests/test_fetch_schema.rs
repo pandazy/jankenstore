@@ -91,7 +91,7 @@ fn test_fetch_schema_with_peer_tables_missing_link_columns() -> anyhow::Result<(
     let conn = Connection::open_in_memory()?;
     initialize_db(&conn)?;
     conn.execute(
-        "CREATE TABLE rel_writer_audience(id INTEGER PRIMARY KEY, writer_id TEXT NOT NULL, artist_id INTEGER, memo TEXT DEFAULT '')",
+        "CREATE TABLE rel_artist_album(id INTEGER PRIMARY KEY, writer_id TEXT NOT NULL, artist_id INTEGER, memo TEXT DEFAULT '')",
         [],
     )?;
 
@@ -159,26 +159,11 @@ fn test_fetch_schema_with_multiple_peers() -> anyhow::Result<()> {
 }
 
 #[test]
-fn test_fetch_schema_with_unknown_parent_tables() -> anyhow::Result<()> {
-    let conn = Connection::open_in_memory()?;
-    initialize_db(&conn)?;
-    conn.execute(
-        "CREATE TABLE log(id INTEGER PRIMARY KEY, artist_id TEXT NOT NULL, audience_id INTEGER)",
-        [],
-    )?;
-
-    let schema_family = fetch_schema_family(&conn, &[], "", "");
-    assert!(schema_family.is_err());
-    assert_snapshot!(schema_family.unwrap_err());
-    Ok(())
-}
-
-#[test]
 fn test_fetch_schema_with_multiple_parenthood() -> anyhow::Result<()> {
     let conn = Connection::open_in_memory()?;
     initialize_db(&conn)?;
     conn.execute(
-        "CREATE TABLE log(id INTEGER PRIMARY KEY, artist_id TEXT NOT NULL, audience_id INTEGER, company_id INTEGER)",
+        "CREATE TABLE log(id INTEGER PRIMARY KEY, artist_id INTEGER NOT NULL, audience_id INTEGER, company_id INTEGER)",
         [],
     )?;
 
@@ -196,6 +181,7 @@ fn test_fetch_schema_with_multiple_parenthood() -> anyhow::Result<()> {
     let schema_family_json = schema_family.json()?;
     let schema_info_map = &schema_family_json.as_object().unwrap();
     let parents = schema_info_map.get("parents").unwrap().as_object().unwrap();
+
     assert_eq!(parents.len(), 2);
 
     assert_eq!(parents.get("log").unwrap().as_array().unwrap().len(), 3);
@@ -290,5 +276,67 @@ fn test_custom_prefix_splitter() -> anyhow::Result<()> {
             .map(String::from)
             .collect::<HashSet<String>>()
     );
+    Ok(())
+}
+
+#[test]
+fn test_wrong_fk_types() -> anyhow::Result<()> {
+    let conn = Connection::open_in_memory()?;
+    initialize_db(&conn)?;
+    conn.execute(
+        "CREATE TABLE chat_history(serial INTEGER PRIMARY KEY, artist_id Integer NOT NULL, content TEXT NOT NULL)",
+        [],
+    )?;
+
+    conn.execute(
+        "CREATE TABLE chat_video(id INTEGER PRIMARY KEY, chat_history_serial TEXT NOT NULL, video BLOB)",
+        [],
+    )?;
+
+    let schema_family = fetch_schema_family(&conn, &[], "", "");
+    assert!(schema_family.is_err());
+    assert_snapshot!(schema_family.unwrap_err());
+
+    Ok(())
+}
+
+#[test]
+fn test_different_pk_names() -> anyhow::Result<()> {
+    let conn = Connection::open_in_memory()?;
+    initialize_db(&conn)?;
+    conn.execute(
+        "CREATE TABLE chathistory(serial INTEGER PRIMARY KEY, artist_id Integer NOT NULL, content TEXT NOT NULL)",
+        [],
+    )?;
+
+    conn.execute(
+        "CREATE TABLE chatvideo(id INTEGER PRIMARY KEY, chathistory_serial INTEGER NOT NULL, video BLOB)",
+        [],
+    )?;
+
+    conn.execute(
+        "CREATE TABLE chatcategory(uuid TEXT PRIMARY KEY, TEXT TEXT NOT NULL)",
+        [],
+    )?;
+
+    conn.execute(
+        "CREATE TABLE rel_chathistory_chatcategory(id INTEGER PRIMARY KEY, chathistory_serial INTEGER NOT NULL, chatcategory_uuid TEXT NOT NULL)",
+        [],
+    )?;
+
+    let schema_family = fetch_schema_family(&conn, &[], "", "")?;
+
+    assert!(&schema_family
+        .peers
+        .get("chathistory")
+        .unwrap()
+        .contains("chatcategory"));
+
+    assert!(&schema_family
+        .peers
+        .get("chatcategory")
+        .unwrap()
+        .contains("chathistory"));
+
     Ok(())
 }

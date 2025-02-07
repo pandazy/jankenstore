@@ -1,4 +1,4 @@
-use super::input_utils::fk_name;
+use super::input_utils::get_fk_name;
 
 use super::{
     basics::{del, insert, total},
@@ -208,8 +208,8 @@ pub fn link(
     }
 
     let peer_link_table = schema_family.try_get_peer_link_table_of(&a_config.0)?;
-    let a_col = fk_name(&a_config.0);
-    let b_col = fk_name(&b_config.0);
+    let a_col = get_fk_name(&a_config.0, schema_family)?;
+    let b_col = get_fk_name(&b_config.0, schema_family)?;
     nn(
         conn,
         peer_link_table,
@@ -238,8 +238,8 @@ pub fn unlink(
         verify_pk(schema_family, peer, keys)?;
     }
     let peer_link_table = schema_family.try_get_peer_link_table_of(&a_config.0)?;
-    let a_col = fk_name(&a_config.0);
-    let b_col = fk_name(&b_config.0);
+    let a_col = get_fk_name(&a_config.0, schema_family)?;
+    let b_col = get_fk_name(&b_config.0, schema_family)?;
     d_all(
         conn,
         peer_link_table,

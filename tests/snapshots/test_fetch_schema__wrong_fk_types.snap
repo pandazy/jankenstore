@@ -1,0 +1,6 @@
+---
+source: tests/test_fetch_schema.rs
+expression: schema_family.unwrap_err()
+---
+The 'chat_history_serial'@'chat_video' is expected to be a foreign key to table 'chat_history' with the type of 'Integer', but it's actually 'Text'. 
+Please check the column type and the primary key type of the parent table and fix them first

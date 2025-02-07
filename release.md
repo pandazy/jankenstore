@@ -1,1 +1,1 @@
--   Added action::payload::ReadSrc for op enums to read their source tables
+-   Added customizable and stricter consistency checks on foreign keys

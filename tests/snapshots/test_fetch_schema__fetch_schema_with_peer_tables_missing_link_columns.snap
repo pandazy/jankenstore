@@ -2,5 +2,5 @@
 source: tests/test_fetch_schema.rs
 expression: schema_family.unwrap_err()
 ---
-Table 'rel_writer_audience' is missing the peer foreign-key column: 'audience_id'
+Table 'rel_artist_album' is missing the peer foreign-key column: 'album_id'
 If you do not expect this table to represent a peer relationship, please rename it to a different one, so it doesn't start with 'rel_'
