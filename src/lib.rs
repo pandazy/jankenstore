@@ -40,6 +40,12 @@
 //!
 //!
 //! ## Example of using a Read action
+//!
+//! See [this example](https://github.com/pandazy/jankenoboe/blob/main/src/main.rs) how this is used together with [Axum](https://docs.rs/axum/latest/axum/) to create a simple web service
+//!
+//! Also, see the example below
+//! ### Quick code example of how to use a Read action to get data from a SQLite database
+//!
 //! ```rust
 //! use jankenstore::action::{payload::ParsableOp, ReadOp};
 //! use jankenstore::sqlite::{

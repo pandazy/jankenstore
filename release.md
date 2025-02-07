@@ -1,1 +1,1 @@
--   Added customizable and stricter consistency checks on foreign keys
+-   Updated document by adding a live example repository link.
