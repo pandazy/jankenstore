@@ -46,7 +46,7 @@ pub fn delete_children_of(
             parent_vals,
         )?;
     }
-    let combined_q_config = get_fk_union_config(parent_info, where_config);
+    let combined_q_config = get_fk_union_config(schema_family, parent_info, where_config)?;
     del(
         conn,
         child_table,

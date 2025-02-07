@@ -1,5 +1,6 @@
 use super::shift::val_to_json;
 
+use anyhow::Result;
 use rusqlite::{types, Connection};
 use serde_json::{json, Value};
 
@@ -380,6 +381,7 @@ fn get_peer_table_name_tips(peer_prefix: &str, peer_splitter: &str) -> String {
 /// # Returns
 /// * a tuple of the peer table names e.g., (table1, table2), the order follows table name
 fn get_peer_names(
+    pk_name_map: &HashMap<String, String>,
     table_name: &str,
     peer_prefix: &str,
     peer_splitter: &str,
@@ -400,13 +402,16 @@ fn get_peer_names(
     }
 
     for p_name in [&peer_name_section[0], &peer_name_section[1]] {
-        if !columns.contains_key(format!("{}_id", p_name).as_str()) {
-            return Err(anyhow::anyhow!(
-                "Table '{}' is missing the peer foreign-key column: '{}_id'\n{}",
-                table_name,
-                p_name,
-                get_peer_table_name_tips(peer_prefix, peer_splitter)
-            ));
+        if let Some(pk_name) = pk_name_map.get(p_name) {
+            let fk_name = format!("{}_{}", p_name, pk_name);
+            if !columns.contains_key(fk_name.as_str()) {
+                return Err(anyhow::anyhow!(
+                    "Table '{}' is missing the peer foreign-key column: '{}'\n{}",
+                    table_name,
+                    fk_name,
+                    get_peer_table_name_tips(peer_prefix, peer_splitter)
+                ));
+            }
         }
     }
 
@@ -414,6 +419,27 @@ fn get_peer_names(
         peer_name_section[0].to_owned(),
         peer_name_section[1].to_owned(),
     ))
+}
+
+type SchemaMetadata = HashMap<String, (Schema, HashMap<String, ColumnMeta>)>;
+
+fn extract_schema_metadata(conn: &Connection, excluded_tables: &[&str]) -> Result<SchemaMetadata> {
+    let excludes = excluded_tables
+        .iter()
+        .map(|name| format!("AND name NOT LIKE '{}'", name.trim()))
+        .collect::<Vec<String>>()
+        .join(" ");
+    let query = TABLE_READ_QUERY.replace("%(condition)s", &excludes);
+    let mut stmt = conn.prepare(&query)?;
+    let mut rows = stmt.query([])?;
+    let mut map = HashMap::new();
+    while let Some(row) = rows.next()? {
+        let table_name = row.get::<usize, String>(0)?.to_owned();
+        let columns = get_columns_meta(conn, table_name.as_str())?;
+        let schema = column_meta_items_to_schema(table_name.as_str(), &columns)?;
+        map.insert(table_name.clone(), (schema, columns));
+    }
+    Ok(map)
 }
 
 ///
@@ -446,14 +472,11 @@ pub fn fetch_schema_family(
     } else {
         peer_splitter
     };
-    let excludes = excluded_tables
+    let schema_metadata = extract_schema_metadata(conn, excluded_tables)?;
+    let all_pk_name_map = schema_metadata
         .iter()
-        .map(|name| format!("AND name NOT LIKE '{}'", name.trim()))
-        .collect::<Vec<String>>()
-        .join(" ");
-    let query = TABLE_READ_QUERY.replace("%(condition)s", &excludes);
-    let mut stmt = conn.prepare(&query)?;
-    let mut rows = stmt.query([])?;
+        .map(|(name, (schema, _))| (name.clone(), schema.pk.clone()))
+        .collect::<HashMap<String, String>>();
     let mut map = HashMap::new();
     let mut peers = HashMap::new();
     let mut peer_pair_candidates = vec![];
@@ -461,23 +484,59 @@ pub fn fetch_schema_family(
     let mut parents = HashMap::new();
     let mut children = HashMap::new();
     let mut parent_candidates = vec![];
-    while let Some(row) = rows.next()? {
-        let table_name = row.get::<usize, String>(0)?.to_owned();
-        let columns = get_columns_meta(conn, table_name.as_str())?;
-        let schema = column_meta_items_to_schema(table_name.as_str(), &columns)?;
-        map.insert(table_name.clone(), schema);
-        if table_name.starts_with(peer_prefix) {
-            let (p1, p2) =
-                get_peer_names(table_name.as_str(), peer_prefix, peer_splitter, &columns)?;
-            peer_tables.insert(p1.clone(), table_name.clone());
-            peer_tables.insert(p2.clone(), table_name.clone());
-            peer_pair_candidates.push((p1.to_owned(), p2.to_owned(), table_name.to_owned()));
+    let mut possible_fks = HashMap::new();
+    let mut column_map = HashMap::new();
+    let is_peer_link = |table_name: &str| table_name.starts_with(peer_prefix);
+    let mut all_pk_name = HashMap::new();
+    for (table, (schema, columns)) in &schema_metadata {
+        all_pk_name.insert(table.clone(), schema.pk.clone());
+        map.insert(table.clone(), schema.clone());
+        if is_peer_link(table.as_str()) {
+            let (p1, p2) = get_peer_names(
+                &all_pk_name_map,
+                table.as_str(),
+                peer_prefix,
+                peer_splitter,
+                columns,
+            )?;
+            peer_tables.insert(p1.clone(), table.clone());
+            peer_tables.insert(p2.clone(), table.clone());
+            peer_pair_candidates.push((p1.to_owned(), p2.to_owned(), table.clone()));
             continue;
         }
-        for (col_name, _) in columns {
-            if col_name.ends_with("_id") {
-                let parent_name = col_name.replace("_id", "");
-                parent_candidates.push((parent_name.clone(), table_name.clone(), col_name));
+        column_map.insert(table.clone(), columns.clone());
+        let pk_type = *schema
+            .types
+            .get(schema.pk.as_str())
+            .unwrap_or(&types::Type::Null);
+        possible_fks.insert(format!("{}_{}", table, schema.pk), (table.clone(), pk_type));
+    }
+    for child_table in map.keys() {
+        if let Some(column) = column_map.get(child_table) {
+            for ColumnMeta {
+                name: fk_col_name,
+                col_type,
+                ..
+            } in column.values()
+            {
+                if let Some((parent_table, expected_type)) = possible_fks.get(fk_col_name) {
+                    if col_type != expected_type {
+                        return Err(anyhow::anyhow!(
+                            "The '{}'@'{}' is expected to be a foreign key to table '{}' with the type of '{}', but it's actually '{}'. \n{}",
+                            fk_col_name,
+                            child_table,
+                            parent_table,
+                            expected_type,
+                            col_type,
+                            "Please check the column type and the primary key type of the parent table and fix them first"
+                        ));
+                    }
+                    parent_candidates.push((
+                        parent_table.clone(),
+                        child_table.clone(),
+                        fk_col_name.clone(),
+                    ));
+                }
             }
         }
     }

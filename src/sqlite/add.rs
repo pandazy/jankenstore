@@ -1,4 +1,4 @@
-use super::input_utils::{fk_name, verify_parenthood};
+use super::input_utils::{get_fk_name, verify_parenthood};
 
 use super::{
     basics,
@@ -65,7 +65,7 @@ pub fn create_child_of(
             parent_table,
             &[parent_val.clone()],
         )?;
-        updated_input.insert(fk_name(parent_table), parent_val);
+        updated_input.insert(get_fk_name(parent_table, schema_family)?, parent_val);
     }
     create(
         conn,
