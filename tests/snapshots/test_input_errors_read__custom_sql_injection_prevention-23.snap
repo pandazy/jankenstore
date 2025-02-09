@@ -1,0 +1,5 @@
+---
+source: tests/test_input_errors_read.rs
+expression: result.unwrap_err()
+---
+Illegal characters in the clause:  GROUP BY [

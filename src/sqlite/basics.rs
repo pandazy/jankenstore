@@ -66,6 +66,22 @@ pub struct CountConfig<'a> {
     pub where_config: Option<WhereConfig<'a>>,
 }
 
+pub const ILLEGAL_BY_CHARS: [char; 16] = [
+    '@', '!', '#', '$', '%', '^', '&', '*', '=', '{', '}', '[', ']', '<', '>', '~',
+];
+
+///
+/// group by, order by, limit, and offset do not work well with Rusqlite's parameterized queries
+/// this is a workaround to prevent SQL injection
+fn contains_illegal_by_chars(s: &str) -> bool {
+    s.contains(['\n', '\r', '\t'])
+        || s.contains("--")
+        || s.contains("/*")
+        || s.contains("*/")
+        // special characters need to be wrapped in quotes
+        || s.contains(ILLEGAL_BY_CHARS)
+}
+
 ///
 /// fetch all matching records from the table
 /// # Arguments
@@ -113,6 +129,15 @@ pub fn read(
         Some(offset) => format!(" OFFSET {}", offset),
         None => String::new(),
     };
+
+    for clause in [group_by.as_str(), order_by.as_str()] {
+        if contains_illegal_by_chars(clause) {
+            return Err(anyhow::anyhow!(
+                "Illegal characters in the clause: {}",
+                clause
+            ));
+        }
+    }
     let where_config = match fetch_config_opt {
         Some(cfg) => cfg.where_config,
         None => None,
