@@ -5,7 +5,7 @@ use helpers::initialize_db;
 use jankenstore::{
     action::{payload::ReadSrc, ReadOp},
     sqlite::{
-        basics::{CountConfig, FetchConfig},
+        basics::{CountConfig, FetchConfig, ILLEGAL_BY_CHARS},
         read::{self, count},
         schema::fetch_schema_family,
     },
@@ -154,6 +154,39 @@ fn test_wrong_search_keyword() -> Result<()> {
     let result = search_op.run(&conn, &schema_family, None);
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());
+
+    Ok(())
+}
+
+#[test]
+fn test_custom_sql_injection_prevention() -> Result<()> {
+    let conn = Connection::open_in_memory()?;
+    initialize_db(&conn)?;
+
+    let schema_family = fetch_schema_family(&conn, &[], "", "")?;
+
+    let read_op: ReadOp = from_value(json!({
+        "ByPk": {
+            "src": "song",
+            "keys": [1]
+        }
+    }))?;
+    for c in ILLEGAL_BY_CHARS {
+        for opt in [
+            Some(FetchConfig {
+                group_by: Some(c.to_string().as_str()),
+                ..Default::default()
+            }),
+            Some(FetchConfig {
+                order_by: Some(c.to_string().as_str()),
+                ..Default::default()
+            }),
+        ] {
+            let result = read_op.run(&conn, &schema_family, opt);
+            assert!(result.is_err());
+            assert_snapshot!(result.unwrap_err());
+        }
+    }
 
     Ok(())
 }
