@@ -31,7 +31,11 @@ fn test_count() -> Result<()> {
     let search_op = ReadOp::from_str(
         r#"
         {
-            "Search": ["song", "name", "ar"]
+            "Search": {
+                "table": "song",
+                "col": "name",
+                "keyword": "ar"
+            }
         }
     "#,
     )?;
@@ -247,14 +251,20 @@ fn test_search() -> Result<()> {
 
     let schema_family = fetch_schema_family(&conn, &[], "", "")?;
 
-    let read_op = ReadOp::from_str(r#"{ "Search": ["song", "name", "Marching"] }"#)?;
+    let read_op = ReadOp::from_str(
+        r#"{ "Search": {
+            "table": "song",
+            "col": "name",
+            "keyword": "Marching",
+            "exact": false }}"#,
+    )?;
 
     let records = read_op.run(&conn, &schema_family, None)?;
     assert_eq!(records.len(), 1);
     assert_eq!(records[0]["name"], json!("When the Saints Go Marching In"));
 
     let read_op: ReadOp = from_value(json!({
-        "Search": ["song", "name", "ar"]
+        "Search": {"table": "song", "col": "name", "keyword": "ar"}
     }))?;
 
     let records = read_op.run(&conn, &schema_family, None)?;
@@ -264,5 +274,18 @@ fn test_search() -> Result<()> {
         .map(|r| r["name"].as_str().unwrap())
         .collect::<Vec<_>>();
     assert_snapshot!(names.join("\n"));
+
+    let read_op: ReadOp = from_value(json!({
+        "Search": {"table": "song", "col": "name", "keyword": "When the Saints Go Marching In", "exact": true}
+    }))?;
+    let records = read_op.run(&conn, &schema_family, None)?;
+    assert_eq!(records.len(), 1);
+    assert_eq!(records[0]["name"], json!("When the Saints Go Marching In"));
+
+    let read_op: ReadOp = from_value(json!({
+        "Search": {"table": "song", "col": "name", "keyword": "When", "exact": true}
+    }))?;
+    let records = read_op.run(&conn, &schema_family, None)?;
+    assert_eq!(records.len(), 0);
     Ok(())
 }

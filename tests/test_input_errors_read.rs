@@ -149,7 +149,11 @@ fn test_wrong_search_keyword() -> Result<()> {
 
     let schema_family = fetch_schema_family(&conn, &[], "", "")?;
 
-    let search_op: ReadOp = from_value(json!({"Search": ["song", "id", "1"]}))?;
+    let search_op: ReadOp = from_value(json!({"Search": {
+        "table": "song",
+        "col": "id",
+        "keyword": "1",
+    }}))?;
 
     let result = search_op.run(&conn, &schema_family, None);
     assert!(result.is_err());
