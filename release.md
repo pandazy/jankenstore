@@ -1,1 +1,1 @@
--   Added SQL injection protection to order by and group by clauses
+-   Updated `Search` in ReadOp so it supports exact match and fuzzy search.

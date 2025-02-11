@@ -7,14 +7,22 @@ use crate::sqlite::{
     input_utils::json_to_pk_val_by_schema,
     read::{self},
     schema::SchemaFamily,
-    shift::{list_to_json, val::v_txt, JsonListOwned},
+    shift::{json_to_val, list_to_json, val::v_txt, JsonListOwned},
     sql::merge_q_configs,
 };
 
 use anyhow::{anyhow, Ok, Result};
 use rusqlite::{types, Connection};
 use serde::{Deserialize, Serialize};
-use serde_json::Value as JsonValue;
+use serde_json::{json, Value as JsonValue};
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SearchConfig {
+    pub table: String,
+    pub col: String,
+    pub keyword: String,
+    pub exact: Option<bool>,
+}
 
 ///
 /// Providing generic read operations using JSON-compatible parameters
@@ -44,11 +52,7 @@ pub enum ReadOp {
 
     ///
     /// Search records in a table by a keyword in a text column
-    /// # Arguments
-    /// * `String` - The name of the table where the records will be read
-    /// * `String` - The name of the text column which will be searched
-    /// * `String` - The keyword to search
-    Search(String, String, String),
+    Search(SearchConfig),
 }
 
 impl ReadOp {
@@ -85,7 +89,12 @@ impl ReadOp {
                 let peer_info = get_peer_info(schema_family, peers)?;
                 read::peers_of(conn, schema_family, src, &peer_info, fetch_opt)
             }
-            Self::Search(table, col, keyword) => {
+            Self::Search(SearchConfig {
+                table,
+                col,
+                keyword,
+                exact,
+            }) => {
                 let schema = schema_family.try_get_schema(table)?;
                 let col_type = schema.types.get(col).unwrap_or(&types::Type::Null);
                 if !col_type.eq(&types::Type::Text) {
@@ -95,7 +104,15 @@ impl ReadOp {
                         table
                     ));
                 }
-                let search_config = (format!("{} like '%'||?||'%'", col), &[v_txt(keyword)]);
+                let exact = exact.unwrap_or(false);
+                let col_type = schema.types.get(col).unwrap_or(&types::Type::Null);
+                let sql_col_val = json_to_val(col_type, &json!(keyword))?;
+                let search_params = vec![sql_col_val];
+                let search_config = if exact {
+                    (format!("{} = ?", col), &search_params)
+                } else {
+                    (format!("{} like '%'||?||'%'", col), &search_params)
+                };
                 let where_config = fetch_opt.and_then(|cfg| cfg.where_config);
                 let combined_config = merge_q_configs(
                     Some((search_config.0.as_str(), search_config.1)),
@@ -122,7 +139,7 @@ impl ReadSrc for ReadOp {
             Self::ByPk(SrcAndKeys { src, .. }) => src,
             Self::Children(ParentHood { src, .. }) => src,
             Self::Peers(PeerHood { src, .. }) => src,
-            Self::Search(table, ..) => table,
+            Self::Search(search_config, ..) => search_config.table.as_str(),
         }
     }
 }

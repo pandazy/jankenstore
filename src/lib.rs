@@ -98,7 +98,12 @@
 //! // the action can also be created from a string
 //! // a practical use case might be if on a API endpoint handler,
 //! // the JSON request is received as a string, then
-//! let query_param = r#"{ "Search": ["myexample", "name", "Alice"] }"#;
+//! let query_param = r#"{ "Search": {
+//!       "table": "myexample",
+//!       "col": "name",
+//!       "keyword": "Alice"
+//!    }
+//! }"#;
 //! let op = ReadOp::from_str(query_param).unwrap();
 //! let result = op.run(&conn, &schema_family, None).unwrap();
 //! assert_eq!(result.len(), 2);
