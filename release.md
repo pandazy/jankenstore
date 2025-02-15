@@ -1,1 +1,1 @@
--   Updated `Search` in ReadOp so it supports exact match and fuzzy search.
+-  Updated documentation

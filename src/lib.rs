@@ -41,7 +41,9 @@
 //!
 //! ## Example of using a Read action
 //!
-//! See [this example](https://github.com/pandazy/jankenoboe/blob/main/src/main.rs) how this is used together with [Axum](https://docs.rs/axum/latest/axum/) to create a simple web service
+//! See
+//! - [this example](https://github.com/pandazy/jankenoboe/blob/main/src/main.rs) of using this library together with [Axum](https://docs.rs/axum/latest/axum/) to create a simple web service
+//! - [related frontend code](https://github.com/pandazy/jankenamq-web) that uses the web service above to memorize Anime songs locally
 //!
 //! Also, see the example below
 //! ### Quick code example of how to use a Read action to get data from a SQLite database
