@@ -52,6 +52,7 @@ fn test_wrong_field() -> Result<()> {
             display_cols: Some(&["wrong_field"]),
             ..Default::default()
         }),
+        true,
     );
     assert!(result.is_err());
     assert_snapshot!(result.unwrap_err());

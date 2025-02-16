@@ -36,13 +36,13 @@ fn test_create() -> Result<()> {
         "keys": [42]
     });
     let read_op: ReadOp = from_value(json!({"ByPk": by_pk_input}))?;
-    let record = read_op.run(&conn, &schema_family, None)?;
+    let (records, _) = read_op.run(&conn, &schema_family, None)?;
 
-    assert!(record.len() == 1);
-    assert_eq!(record[0]["id"], json!(42));
-    assert_eq!(record[0]["name"], json!("test"));
-    assert_eq!(record[0]["artist_id"], json!(24));
-    assert_eq!(record[0]["memo"], json!("gogo"));
+    assert_eq!(records.len(), 1);
+    assert_eq!(records[0]["id"], json!(42));
+    assert_eq!(records[0]["name"], json!("test"));
+    assert_eq!(records[0]["artist_id"], json!(24));
+    assert_eq!(records[0]["memo"], json!("gogo"));
 
     Ok(())
 }
@@ -77,10 +77,10 @@ fn test_create_with_input_map() -> Result<()> {
         "keys": [42]
     });
     let read_op: ReadOp = from_value(json!({"ByPk": by_pk_input}))?;
-    let record = read_op.run(&conn, &schema_family, None)?;
+    let (records, _) = read_op.run(&conn, &schema_family, None)?;
 
-    assert!(record.len() == 1);
-    assert_eq!(record[0]["memo"], json!("Roger that!"));
+    assert_eq!(records.len(), 1);
+    assert_eq!(records[0]["memo"], json!("Roger that!"));
 
     Ok(())
 }
@@ -98,7 +98,7 @@ fn test_create_child() -> Result<()> {
     let read_op: ReadOp = from_value(json!({
         "Children": children_read_input
     }))?;
-    let records = read_op.run(&conn, &schema_family, None)?;
+    let (records, _) = read_op.run(&conn, &schema_family, None)?;
     assert_eq!(records.len(), 1);
     assert_eq!(records[0]["name"], json!("A Hard Day's Night"));
 
@@ -121,7 +121,7 @@ fn test_create_child() -> Result<()> {
     create_op.run(&conn, &schema_family)?;
     assert_eq!(create_op.src(), "song");
 
-    let records = read_op.run(&conn, &schema_family, None)?;
+    let (records, _) = read_op.run(&conn, &schema_family, None)?;
 
     assert_eq!(records.len(), 2);
     assert_eq!(records[1]["id"], json!(999));
@@ -144,7 +144,7 @@ fn test_create_child_with_input_map() -> Result<()> {
     let read_op: ReadOp = from_value(json!({
         "Children": children_read_input
     }))?;
-    let records = read_op.run(&conn, &schema_family, None)?;
+    let (records, _) = read_op.run(&conn, &schema_family, None)?;
     assert_eq!(records.len(), 1);
     assert_eq!(records[0]["name"], json!("A Hard Day's Night"));
 
@@ -170,7 +170,7 @@ fn test_create_child_with_input_map() -> Result<()> {
         Ok(record)
     })?;
 
-    let records = read_op.run(&conn, &schema_family, None)?;
+    let (records, _) = read_op.run(&conn, &schema_family, None)?;
     assert_eq!(records.len(), 2);
     assert_eq!(records[1]["memo"], json!("60s!"));
 
@@ -200,10 +200,10 @@ fn test_update() -> Result<()> {
             "keys": [1]
         }
     }))?;
-    let record = read_song.run(&conn, &schema_family, None)?;
-    assert!(record.len() == 1);
-    assert_eq!(record[0]["name"], json!("updated"));
-    assert_eq!(record[0]["memo"], json!("updated"));
+    let (records, _) = read_song.run(&conn, &schema_family, None)?;
+    assert_eq!(records.len(), 1);
+    assert_eq!(records[0]["name"], json!("updated"));
+    assert_eq!(records[0]["memo"], json!("updated"));
 
     let input = json!({
         "price": 20.8,
@@ -219,10 +219,10 @@ fn test_update() -> Result<()> {
             "keys": [1]
         }
     }))?;
-    let record = read_album.run(&conn, &schema_family, None)?;
-    assert!(record.len() == 1);
-    assert_eq!(record[0]["price"], json!(20.8));
-    assert_eq!(record[0]["memo"], json!("2025"));
+    let (records, _) = read_album.run(&conn, &schema_family, None)?;
+    assert_eq!(records.len(), 1);
+    assert_eq!(records[0]["price"], json!(20.8));
+    assert_eq!(records[0]["memo"], json!("2025"));
 
     Ok(())
 }
@@ -255,9 +255,9 @@ fn test_update_with_run_map() -> Result<()> {
             "keys": [1]
         }
     }))?;
-    let record = read_song.run(&conn, &schema_family, None)?;
-    assert!(record.len() == 1);
-    assert_eq!(record[0]["memo"], json!("Roger that!"));
+    let (records, _) = read_song.run(&conn, &schema_family, None)?;
+    assert_eq!(records.len(), 1);
+    assert_eq!(records[0]["memo"], json!("Roger that!"));
 
     Ok(())
 }
@@ -289,7 +289,7 @@ fn test_update_children_with_run_map() -> Result<()> {
     create_op.run(&conn, &schema_family)?;
 
     // Confirm the state before update
-    let records = read_op.run(&conn, &schema_family, None)?;
+    let (records, _) = read_op.run(&conn, &schema_family, None)?;
     assert_eq!(records.len(), 2);
     assert_eq!(records[0]["memo"], json!("60s"));
     assert_eq!(records[1]["memo"], json!("1966"));
@@ -310,7 +310,7 @@ fn test_update_children_with_run_map() -> Result<()> {
         record.insert("memo".to_owned(), v_txt("Roger that!"));
         Ok(record)
     })?;
-    let records = read_op.run(&conn, &schema_family, None)?;
+    let (records, _) = read_op.run(&conn, &schema_family, None)?;
     assert_eq!(update_op.src(), "song");
 
     // Verify the state after update
@@ -349,7 +349,7 @@ fn test_update_children() -> Result<()> {
 
     // Confirm the state before update
     create_op.run(&conn, &schema_family)?;
-    let records = read_op.run(&conn, &schema_family, None)?;
+    let (records, _) = read_op.run(&conn, &schema_family, None)?;
     assert_eq!(records.len(), 2);
     assert_eq!(records[0]["memo"], json!("60s"));
     assert_eq!(records[1]["memo"], json!("1966"));
@@ -366,7 +366,7 @@ fn test_update_children() -> Result<()> {
         "#,
     )?;
     update_op.run(&conn, &schema_family)?;
-    let records = read_op.run(&conn, &schema_family, None)?;
+    let (records, _) = read_op.run(&conn, &schema_family, None)?;
 
     // Verify the state after update
     assert_eq!(records.len(), 2);
@@ -390,13 +390,15 @@ fn test_delete() -> Result<()> {
             "keys": [1]
         }
     }))?;
-    assert_eq!(read_op.run(&conn, &schema_family, None)?.len(), 1);
+    let (records, _) = read_op.run(&conn, &schema_family, None)?;
+    assert_eq!(records.len(), 1);
 
     let del_op = DelOp::from_str(r#"{ "Delete": { "src": "song", "keys": [1] } }"#)?;
     del_op.run(&conn, &schema_family, None)?;
     assert_eq!(del_op.src(), "song");
 
-    assert_eq!(read_op.run(&conn, &schema_family, None)?.len(), 0);
+    let (records, _) = read_op.run(&conn, &schema_family, None)?;
+    assert_eq!(records.len(), 0);
     Ok(())
 }
 
@@ -428,7 +430,7 @@ fn test_delete_children() -> Result<()> {
     }))?;
 
     // Confirm the state before delete
-    let records = read_op.run(&conn, &schema_family, None)?;
+    let (records, _) = read_op.run(&conn, &schema_family, None)?;
     assert_eq!(records.len(), 2);
 
     // Delete the child(or children)
@@ -441,11 +443,11 @@ fn test_delete_children() -> Result<()> {
     del_op.run(&conn, &schema_family, None)?;
     assert_eq!(del_op.src(), "song");
 
-    let records = read_op.run(&conn, &schema_family, None)?;
+    let (records, total) = read_op.run(&conn, &schema_family, None)?;
 
     // Verify the state after delete
     assert_eq!(records.len(), 0);
-
+    assert_eq!(total, 0);
     Ok(())
 }
 
@@ -473,8 +475,13 @@ fn test_unlink_peers() -> Result<()> {
         }
         "#,
     )?;
-    assert_eq!(read_op.run(&conn, &schema_family, None)?.len(), 4);
-    assert_eq!(read_op_2.run(&conn, &schema_family, None)?.len(), 1);
+    let (records, total) = read_op.run(&conn, &schema_family, None)?;
+    assert_eq!(records.len(), 4);
+    assert_eq!(total, 4);
+
+    let (records, total) = read_op_2.run(&conn, &schema_family, None)?;
+    assert_eq!(records.len(), 1);
+    assert_eq!(total, 1);
 
     // Change
     let rel_op: PeerOp = from_value(json!({
@@ -494,14 +501,16 @@ fn test_unlink_peers() -> Result<()> {
     }))?;
     rel_op.run(&conn, &schema_family)?;
 
-    assert_eq!(read_op.run(&conn, &schema_family, None)?.len(), 1);
+    let (records, _) = read_op.run(&conn, &schema_family, None)?;
+    assert_eq!(records.len(), 1);
 
     let rel_op: PeerOp = from_value(json!({
         "Unlink": { "song": [5], "album": [2] }
     }))?;
     rel_op.run(&conn, &schema_family)?;
 
-    assert_eq!(read_op_2.run(&conn, &schema_family, None)?.len(), 0);
+    let (records, _) = read_op_2.run(&conn, &schema_family, None)?;
+    assert_eq!(records.len(), 0);
 
     Ok(())
 }
@@ -520,7 +529,9 @@ fn test_link_peers() -> Result<()> {
             "peers": { "album": [3] }
         }
     }))?;
-    assert_eq!(read_op.run(&conn, &schema_family, None)?.len(), 0);
+    let (records, total) = read_op.run(&conn, &schema_family, None)?;
+    assert_eq!(records.len(), 0);
+    assert_eq!(total, 0);
 
     // Change
     let rel_op: PeerOp = from_value(json!({
@@ -538,7 +549,9 @@ fn test_link_peers() -> Result<()> {
     }))?;
     rel_op.run(&conn, &schema_family)?;
 
-    assert_eq!(read_op.run(&conn, &schema_family, None)?.len(), 3);
+    let (records, total) = read_op.run(&conn, &schema_family, None)?;
+    assert_eq!(records.len(), 3);
+    assert_eq!(total, 3);
 
     Ok(())
 }

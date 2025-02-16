@@ -83,16 +83,22 @@ fn contains_illegal_by_chars(s: &str) -> bool {
 }
 
 ///
-/// fetch all matching records from the table
+/// fetch all matching records from the table with total count
+///
+/// Using count is useful for pagination.
 /// # Arguments
 /// * `conn` - the Rusqlite connection to the database
 /// * `table_name` - the name of the table
 /// * `fetch_config_opt` - the configuration for fetching the records
-pub fn read(
+/// * `skip_count` - whether to skip the count
+/// # Returns
+/// A tuple of the records and the total count
+pub fn read_with_total(
     conn: &Connection,
     table_name: &str,
     fetch_config_opt: Option<FetchConfig>,
-) -> Result<Vec<HashMap<String, types::Value>>> {
+    skip_count: bool,
+) -> Result<(Vec<HashMap<String, types::Value>>, u64)> {
     let default_fields = vec!["*"];
     let fetch_config = fetch_config_opt.unwrap_or_default();
     let display_fields = fetch_config.display_cols.unwrap_or(&default_fields);
@@ -144,13 +150,38 @@ pub fn read(
     };
     let (where_q_clause, where_q_params) = sql::standardize_q_config(where_config, "WHERE");
     let sql = format!("{} {}", sql, where_q_clause);
-    let sql = format!("{}{}{}{}{}", sql, group_by, order_by, limit, offset);
-    let mut stmt = conn.prepare(&sql)?;
+    let sql_without_pagination = format!("{}{}{}", sql, group_by, order_by);
+    let sql_with_pagination = format!("{}{}{}{}{}", sql, group_by, order_by, limit, offset);
+    let mut stmt = conn.prepare(&sql_with_pagination)?;
     let mut rows = stmt.query(params_from_iter(&where_q_params))?;
     let mut result = Vec::new();
     while let Some(row) = rows.next()? {
         result.push(shift::row_to_map(row)?);
     }
+
+    if skip_count {
+        let total = &result.len();
+        return Ok((result.clone(), *total as u64));
+    }
+
+    let total_sql = format!("SELECT COUNT(*) FROM ({})", sql_without_pagination);
+    let mut stmt = conn.prepare(&total_sql)?;
+    let total = stmt.query_row(params_from_iter(&where_q_params), |row| row.get(0))?;
+    Ok((result, total))
+}
+
+///
+/// fetch all matching records from the table
+/// # Arguments
+/// * `conn` - the Rusqlite connection to the database
+/// * `table_name` - the name of the table
+/// * `fetch_config_opt` - the configuration for fetching the records
+pub fn read(
+    conn: &Connection,
+    table_name: &str,
+    fetch_config_opt: Option<FetchConfig>,
+) -> Result<Vec<HashMap<String, types::Value>>> {
+    let (result, _) = read_with_total(conn, table_name, fetch_config_opt, true)?;
     Ok(result)
 }
 

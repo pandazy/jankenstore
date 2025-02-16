@@ -47,12 +47,14 @@ fn verify_cols(schema: &Schema, cols: &[&str]) -> Result<()> {
 /// * `schema_family` - the schema family of the database for validation
 /// * `table` - the name of the table
 /// * `fetch_config_opt` - the configuration for fetching the records
+/// * `skip_count` - whether to skip the count, if false, return the total count regardless of the limit and offset
 pub fn all(
     conn: &Connection,
     schema_family: &SchemaFamily,
     table: &str,
     fetch_config_opt: Option<FetchConfig>,
-) -> Result<RecordListOwned> {
+    skip_count: bool,
+) -> Result<(RecordListOwned, u64)> {
     let schema = schema_family.try_get_schema(table)?;
     let display_cols = fetch_config_opt.and_then(|cfg| cfg.display_cols);
 
@@ -64,7 +66,7 @@ pub fn all(
     if group_by.trim().is_empty() {
         verify_cols(schema, display_cols.unwrap_or_default())?;
     }
-    basics::read(conn, table, fetch_config_opt)
+    basics::read_with_total(conn, table, fetch_config_opt, skip_count)
 }
 
 ///
@@ -81,7 +83,8 @@ pub fn by_pk(
     table: &str,
     pk_values: &[types::Value],
     fetch_config_opt: Option<FetchConfig>,
-) -> Result<RecordListOwned> {
+    skip_count: bool,
+) -> Result<(RecordListOwned, u64)> {
     let where_config = fetch_config_opt.and_then(|cfg| cfg.where_config);
     let schema = schema_family.try_get_schema(table)?;
     verify_pk(schema_family, table, pk_values)?;
@@ -90,7 +93,8 @@ pub fn by_pk(
         where_config: Some((combined_q_config.0.as_str(), combined_q_config.1.as_slice())),
         ..fetch_config_opt.unwrap_or_default()
     };
-    all(conn, schema_family, table, Some(inherited_config))
+    let fetch_opt = Some(inherited_config);
+    all(conn, schema_family, table, fetch_opt, skip_count)
 }
 
 ///
@@ -129,7 +133,8 @@ pub fn children_of(
     child_table: &str,
     parent_info: &HashMap<String, Vec<types::Value>>,
     fetch_config_opt: Option<FetchConfig>,
-) -> Result<RecordListOwned> {
+    skip_count: bool,
+) -> Result<(RecordListOwned, u64)> {
     schema_family.try_get_schema(child_table)?;
     for (parent_table, parent_vals) in parent_info {
         verify_parenthood(schema_family, child_table, parent_table, parent_vals)?;
@@ -140,7 +145,8 @@ pub fn children_of(
         where_config: Some((combined_q_config.0.as_str(), combined_q_config.1.as_slice())),
         ..fetch_config_opt.unwrap_or_default()
     };
-    all(conn, schema_family, child_table, Some(updated_fetch_config))
+    let fetch_opt = Some(updated_fetch_config);
+    all(conn, schema_family, child_table, fetch_opt, skip_count)
 }
 
 fn verify_peers(schema_family: &SchemaFamily, peer_tables: &[&str]) -> Result<()> {
@@ -159,13 +165,15 @@ fn verify_peers(schema_family: &SchemaFamily, peer_tables: &[&str]) -> Result<()
 /// * `source_table` - the name of the main data source table
 /// * `peer_config` - the configuration for fetching the records
 /// * `fetch_config_opt` - the configuration for fetching the records
+/// * `skip_count` - whether to skip the count, if false, return the total count regardless of the limit and offset
 pub fn peers_of(
     conn: &Connection,
     schema_family: &SchemaFamily,
     source_table: &str,
     peer_config: &HashMap<String, Vec<types::Value>>,
     fetch_config_opt: Option<FetchConfig>,
-) -> anyhow::Result<RecordListOwned> {
+    skip_count: bool,
+) -> anyhow::Result<(RecordListOwned, u64)> {
     let where_config = fetch_config_opt.and_then(|cfg| cfg.where_config);
     let rel_table = schema_family.try_get_peer_link_table_of(source_table)?;
     verify_peers(
@@ -196,7 +204,8 @@ pub fn peers_of(
         where_config: Some((combined_config.0.as_str(), combined_config.1.as_slice())),
         ..fetch_config_opt.unwrap_or_default()
     };
-    all(conn, schema_family, source_table, Some(fetch_config))
+    let fetch_opt = Some(fetch_config);
+    all(conn, schema_family, source_table, fetch_opt, skip_count)
 }
 
 #[cfg(test)]
@@ -223,26 +232,27 @@ mod tests {
         )?;
 
         let schema_family = fetch_schema_family(&conn, &[], "", "")?;
-        assert_eq!(read::all(&conn, &schema_family, "users", None)?.len(), 2);
+        let (records, total) = read::all(&conn, &schema_family, "users", None, false)?;
+        assert_eq!(records.len(), 2);
+        assert_eq!(total, 2);
 
-        assert_eq!(
-            read::all(
-                &conn,
-                &schema_family,
-                "users",
-                Some(FetchConfig {
-                    display_cols: Some(&["name"]),
-                    is_distinct: true,
-                    where_config: None,
-                    group_by: None,
-                    order_by: None,
-                    limit: None,
-                    offset: None
-                })
-            )?
-            .len(),
-            1
-        );
+        let (records, total) = read::all(
+            &conn,
+            &schema_family,
+            "users",
+            Some(FetchConfig {
+                display_cols: Some(&["name"]),
+                is_distinct: true,
+                where_config: None,
+                group_by: None,
+                order_by: None,
+                limit: None,
+                offset: None,
+            }),
+            true,
+        )?;
+        assert_eq!(records.len(), 1);
+        assert_eq!(total, 1);
         Ok(())
     }
 }
