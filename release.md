@@ -1,1 +1,1 @@
--  Updated documentation
+-   Added count for each read operation to allow total count regardless of pagination
