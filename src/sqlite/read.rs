@@ -66,7 +66,7 @@ pub fn all(
     if group_by.trim().is_empty() {
         verify_cols(schema, display_cols.unwrap_or_default())?;
     }
-    basics::read_with_total(conn, table, fetch_config_opt, skip_count)
+    basics::read(conn, table, fetch_config_opt, skip_count)
 }
 
 ///

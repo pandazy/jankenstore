@@ -93,7 +93,7 @@ fn contains_illegal_by_chars(s: &str) -> bool {
 /// * `skip_count` - whether to skip the count
 /// # Returns
 /// A tuple of the records and the total count
-pub fn read_with_total(
+pub fn read(
     conn: &Connection,
     table_name: &str,
     fetch_config_opt: Option<FetchConfig>,
@@ -168,21 +168,6 @@ pub fn read_with_total(
     let mut stmt = conn.prepare(&total_sql)?;
     let total = stmt.query_row(params_from_iter(&where_q_params), |row| row.get(0))?;
     Ok((result, total))
-}
-
-///
-/// fetch all matching records from the table
-/// # Arguments
-/// * `conn` - the Rusqlite connection to the database
-/// * `table_name` - the name of the table
-/// * `fetch_config_opt` - the configuration for fetching the records
-pub fn read(
-    conn: &Connection,
-    table_name: &str,
-    fetch_config_opt: Option<FetchConfig>,
-) -> Result<Vec<HashMap<String, types::Value>>> {
-    let (result, _) = read_with_total(conn, table_name, fetch_config_opt, true)?;
-    Ok(result)
 }
 
 ///
