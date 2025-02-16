@@ -7,7 +7,7 @@ use crate::sqlite::{
     input_utils::json_to_pk_val_by_schema,
     read::{self},
     schema::SchemaFamily,
-    shift::{json_to_val, list_to_json, val::v_txt, JsonListOwned},
+    shift::{json_to_val, list_to_json, JsonListOwned},
     sql::merge_q_configs,
 };
 
@@ -67,7 +67,7 @@ impl ReadOp {
         conn: &Connection,
         schema_family: &SchemaFamily,
         fetch_opt: Option<FetchConfig>,
-    ) -> Result<JsonListOwned> {
+    ) -> Result<(JsonListOwned, u64)> {
         let get_pk_vals = |data_src, pk_vals: &[JsonValue]| -> Result<Vec<types::Value>> {
             let mut results = vec![];
             for pk_val in pk_vals {
@@ -76,18 +76,18 @@ impl ReadOp {
             Ok(results)
         };
         let results = match self {
-            Self::All(table) => read::all(conn, schema_family, table, fetch_opt),
+            Self::All(table) => read::all(conn, schema_family, table, fetch_opt, false),
             Self::ByPk(SrcAndKeys { src, keys }) => {
                 let pk_vals = get_pk_vals(src, keys)?;
-                read::by_pk(conn, schema_family, src, &pk_vals, fetch_opt)
+                read::by_pk(conn, schema_family, src, &pk_vals, fetch_opt, false)
             }
             Self::Children(ParentHood { src, parents }) => {
                 let parent_info = get_parent_info(schema_family, src, parents)?;
-                read::children_of(conn, schema_family, src, &parent_info, fetch_opt)
+                read::children_of(conn, schema_family, src, &parent_info, fetch_opt, false)
             }
             Self::Peers(PeerHood { src, peers }) => {
                 let peer_info = get_peer_info(schema_family, peers)?;
-                read::peers_of(conn, schema_family, src, &peer_info, fetch_opt)
+                read::peers_of(conn, schema_family, src, &peer_info, fetch_opt, false)
             }
             Self::Search(SearchConfig {
                 table,
@@ -119,15 +119,21 @@ impl ReadOp {
                     where_config,
                     "AND",
                 );
-                read::all(conn, schema_family, table, {
-                    let mut fetch_config = fetch_opt.unwrap_or_default();
-                    fetch_config.where_config =
-                        Some((combined_config.0.as_str(), combined_config.1.as_slice()));
-                    Some(fetch_config)
-                })
+                read::all(
+                    conn,
+                    schema_family,
+                    table,
+                    {
+                        let mut fetch_config = fetch_opt.unwrap_or_default();
+                        fetch_config.where_config =
+                            Some((combined_config.0.as_str(), combined_config.1.as_slice()));
+                        Some(fetch_config)
+                    },
+                    false,
+                )
             }
         }?;
-        Ok(list_to_json(&results)?)
+        Ok((list_to_json(&results.0)?, results.1))
     }
 }
 

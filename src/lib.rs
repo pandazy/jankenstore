@@ -90,10 +90,11 @@
 //!               "keys": [2]
 //!            }
 //!       })).unwrap();
-//! let result = op.run(&conn, &schema_family, None).unwrap();
-//! assert_eq!(result.len(), 1);
-//! assert_eq!(result[0]["name"], "Alice");
-//! assert_eq!(result[0]["memo"], "little");
+//! let (results, total) = op.run(&conn, &schema_family, None).unwrap();
+//! assert_eq!(results.len(), 1);
+//! assert_eq!(results[0]["name"], "Alice");
+//! assert_eq!(results[0]["memo"], "little");
+//! assert_eq!(total, 1);
 //!
 //!
 //! // get all records by search keyword in the name column
@@ -107,13 +108,14 @@
 //!    }
 //! }"#;
 //! let op = ReadOp::from_str(query_param).unwrap();
-//! let result = op.run(&conn, &schema_family, None).unwrap();
-//! assert_eq!(result.len(), 2);
-//! assert_eq!(result[0]["name"], "Alice");
-//! assert_eq!(result[1]["name"], "Alice");
+//! let (results, total) = op.run(&conn, &schema_family, None).unwrap();
+//! assert_eq!(results.len(), 2);
+//! assert_eq!(results[0]["name"], "Alice");
+//! assert_eq!(results[1]["name"], "Alice");
+//! assert_eq!(total, 2);
 //!
 //! // Add further condition to the search by using a FetchConfig
-//! let result = op.run(&conn, &schema_family, Some(FetchConfig{
+//! let (results, total) = op.run(&conn, &schema_family, Some(FetchConfig{
 //!    display_cols: Some(&["name", "memo"]),
 //!    is_distinct: true,
 //!    where_config: Some(("memo like '%'||?||'%'", &[v_txt("big")])),
@@ -122,9 +124,10 @@
 //!    limit: None,
 //!    offset: None
 //! })).unwrap();
-//! assert_eq!(result.len(), 1);
-//! assert_eq!(result[0]["name"], "Alice");
-//! assert_eq!(result[0]["memo"], "big");
+//! assert_eq!(results.len(), 1);
+//! assert_eq!(results[0]["name"], "Alice");
+//! assert_eq!(results[0]["memo"], "big");
+//! assert_eq!(total, 1);
 //!
 //! ```
 

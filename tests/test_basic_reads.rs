@@ -42,7 +42,9 @@ fn test_count() -> Result<()> {
 
     let result = search_op.run(&conn, &schema_family, None);
     assert_eq!(search_op.src(), "song");
-    assert_eq!(result?.len(), 4);
+    let (records, total) = result?;
+    assert_eq!(records.len(), 4);
+    assert_eq!(total, 4);
 
     let result = count(
         &conn,
@@ -79,8 +81,9 @@ fn test_read_all() -> Result<()> {
     let read_op = ReadOp::from_str(r#"{ "All": "song" }"#)?;
     assert_eq!(read_op.src(), "song");
 
-    let records = read_op.run(&conn, &schema_family, None)?;
+    let (records, total) = read_op.run(&conn, &schema_family, None)?;
     assert_eq!(records.len(), 6);
+    assert_eq!(total, 6);
     Ok(())
 }
 
@@ -93,7 +96,7 @@ fn test_read_by_pagination() -> Result<()> {
 
     let read_op = ReadOp::from_str(r#"{ "All": "song" }"#)?;
 
-    let records = read_op.run(
+    let (records, total) = read_op.run(
         &conn,
         &schema_family,
         Some(FetchConfig {
@@ -103,10 +106,12 @@ fn test_read_by_pagination() -> Result<()> {
         }),
     )?;
     assert_eq!(records.len(), 2);
+    assert_eq!(total, 6);
+
     assert_eq!(records[0]["name"], json!("When the Saints Go Marching In"));
     assert_eq!(records[1]["name"], json!("Scarborough Fair / Canticle"));
 
-    let records = read_op.run(
+    let (records, total) = read_op.run(
         &conn,
         &schema_family,
         Some(FetchConfig {
@@ -116,10 +121,12 @@ fn test_read_by_pagination() -> Result<()> {
         }),
     )?;
     assert_eq!(records.len(), 2);
+    assert_eq!(total, 6);
+
     assert_eq!(records[0]["name"], json!("A Hard Day's Night"));
     assert_eq!(records[1]["name"], json!("Makafushigi Adventure"));
 
-    let records = read_op.run(
+    let (records, total) = read_op.run(
         &conn,
         &schema_family,
         Some(FetchConfig {
@@ -130,6 +137,8 @@ fn test_read_by_pagination() -> Result<()> {
     )?;
 
     assert_eq!(records.len(), 2);
+    assert_eq!(total, 6);
+
     assert_eq!(records[0]["name"], json!("We Are!"));
     assert_eq!(records[1]["name"], json!("We Go!"));
 
@@ -145,7 +154,7 @@ fn test_group_by() -> Result<()> {
 
     let read_op = ReadOp::from_str(r#"{ "All": "song" }"#)?;
 
-    let records = read_op.run(
+    let (records, total) = read_op.run(
         &conn,
         &schema_family,
         Some(FetchConfig {
@@ -155,6 +164,8 @@ fn test_group_by() -> Result<()> {
         }),
     )?;
     assert_eq!(records.len(), 5);
+    assert_eq!(total, 5);
+
     assert_eq!(records[0]["artist_id"], json!(1));
     assert_eq!(records[0]["count"], json!(1));
 
@@ -170,6 +181,20 @@ fn test_group_by() -> Result<()> {
     assert_eq!(records[4]["artist_id"], json!(5));
     assert_eq!(records[4]["count"], json!(2));
 
+    let (records, total) = read_op.run(
+        &conn,
+        &schema_family,
+        Some(FetchConfig {
+            display_cols: Some(&["artist_id", "count(*) as count"]),
+            group_by: Some("artist_id "),
+            limit: Some(2),
+            offset: Some(0),
+            ..Default::default()
+        }),
+    )?;
+    assert_eq!(records.len(), 2);
+    assert_eq!(total, 5);
+
     Ok(())
 }
 
@@ -182,7 +207,7 @@ fn test_order_by() -> Result<()> {
 
     let read_op = ReadOp::from_str(r#"{ "All": "song" }"#)?;
 
-    let records = read_op.run(
+    let (records, total) = read_op.run(
         &conn,
         &schema_family,
         Some(FetchConfig {
@@ -191,6 +216,8 @@ fn test_order_by() -> Result<()> {
         }),
     )?;
     assert_eq!(records.len(), 6);
+    assert_eq!(total, 6);
+
     [
         "When the Saints Go Marching In",
         "We Go!",
@@ -224,12 +251,13 @@ fn test_reading_peers() -> Result<()> {
             }"#,
     )?;
 
-    let records = read_op.run(&conn, &schema_family, None)?;
+    let (records, total) = read_op.run(&conn, &schema_family, None)?;
     assert_eq!(read_op.src(), "song");
     assert_eq!(records.len(), 4);
     assert_eq!(records[0]["name"], json!("When the Saints Go Marching In"));
+    assert_eq!(total, 4);
 
-    let records = read_op.run(
+    let (records, _) = read_op.run(
         &conn,
         &schema_family,
         Some(FetchConfig {
@@ -259,16 +287,18 @@ fn test_search() -> Result<()> {
             "exact": false }}"#,
     )?;
 
-    let records = read_op.run(&conn, &schema_family, None)?;
+    let (records, total) = read_op.run(&conn, &schema_family, None)?;
     assert_eq!(records.len(), 1);
     assert_eq!(records[0]["name"], json!("When the Saints Go Marching In"));
+    assert_eq!(total, 1);
 
     let read_op: ReadOp = from_value(json!({
         "Search": {"table": "song", "col": "name", "keyword": "ar"}
     }))?;
 
-    let records = read_op.run(&conn, &schema_family, None)?;
+    let (records, total) = read_op.run(&conn, &schema_family, None)?;
     assert_eq!(records.len(), 4);
+    assert_eq!(total, 4);
     let names = records
         .iter()
         .map(|r| r["name"].as_str().unwrap())
@@ -278,14 +308,16 @@ fn test_search() -> Result<()> {
     let read_op: ReadOp = from_value(json!({
         "Search": {"table": "song", "col": "name", "keyword": "When the Saints Go Marching In", "exact": true}
     }))?;
-    let records = read_op.run(&conn, &schema_family, None)?;
+    let (records, total) = read_op.run(&conn, &schema_family, None)?;
     assert_eq!(records.len(), 1);
     assert_eq!(records[0]["name"], json!("When the Saints Go Marching In"));
+    assert_eq!(total, 1);
 
     let read_op: ReadOp = from_value(json!({
         "Search": {"table": "song", "col": "name", "keyword": "When", "exact": true}
     }))?;
-    let records = read_op.run(&conn, &schema_family, None)?;
+    let (records, total) = read_op.run(&conn, &schema_family, None)?;
     assert_eq!(records.len(), 0);
+    assert_eq!(total, 0);
     Ok(())
 }
