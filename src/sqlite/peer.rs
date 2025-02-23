@@ -193,9 +193,15 @@ fn get_2_configs(inputs: &HashMap<String, Vec<types::Value>>) -> Result<PeerConf
 /// # Arguments
 /// * `conn` - the Rusqlite connection to the database
 /// * `schema_family` - the schema family containing the schema for the table, used for validation. See [SchemaFamily]
-/// * `a_config` - the table matching settings of the A side of the relationship
-///               - `tuple(source_a_table_name, source_a_pk_value)`
-/// * `b_config` - the table matching settings of the B side of the relationship, similar to `a_config`
+/// * `inputs` - the table matching settings of the A side and the B side of the relationship
+///              it can only have 2 keys, the key is the table name, the value is the list of primary key values of peer records in the table
+///              for example:
+///              ```json
+///              {
+///                  "show": ["1232", "7889"],
+///                  "song": ["19191", "65655"]
+///              }
+///              ```
 pub fn link(
     conn: &Connection,
     schema_family: &SchemaFamily,
@@ -224,9 +230,14 @@ pub fn link(
 /// # Arguments
 /// * `conn` - the Rusqlite connection to the database
 /// * `schema_family` - the schema family containing the schema for the table, used for validation. See [SchemaFamily]
-/// * `a_config` - the table matching settings of the A side of the relationship
-///              - `tuple(source_a_table_name, source_a_pk_value)`
-/// * `b_config` - the table matching settings of the B side of the relationship, similar to `a_config`
+/// * `inputs` - the table matching settings of the A side and the B side of the relationship, similar to [link]
+///              it can only have 2 keys, the key is the table name, the value is the list of primary key values of peer records in the table
+///              for example:
+///              ```json
+///              {
+///                  "show": ["1232", "7889"],
+///                  "song": ["19191", "65655"]
+///              }
 pub fn unlink(
     conn: &Connection,
     schema_family: &SchemaFamily,
