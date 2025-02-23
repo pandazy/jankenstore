@@ -3,6 +3,7 @@ use rusqlite::{
     types::{self},
     Row,
 };
+use serde_json::json;
 
 use std::collections::HashMap;
 

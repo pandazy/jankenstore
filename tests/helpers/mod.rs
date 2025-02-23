@@ -106,13 +106,14 @@ fn link_albums_to_songs(conn: &Connection) -> anyhow::Result<()> {
 
 pub fn initialize_db(conn: &Connection) -> anyhow::Result<()> {
     conn.execute(
-        "CREATE TABLE song (
+        r#"CREATE TABLE song (
           id INTEGER PRIMARY KEY,
           name TEXT NOT NULL,
           artist_id INTEGER,
           file BLOB,
-          memo TEXT DEFAULT ''
-      )",
+          memo TEXT DEFAULT '',
+          memo2 TEXT DEFAULT ""
+      )"#,
         [],
     )?;
 

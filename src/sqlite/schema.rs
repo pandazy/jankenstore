@@ -341,6 +341,17 @@ pub fn get_columns_meta(
         }
         let is_required: bool = row.get(3)?;
         let default: types::Value = row.get(4)?;
+        let default = match &default {
+            types::Value::Text(text) => {
+                // correct empty text fetched from metadata
+                if text.is_empty() || text == "''" || text == r#""""# {
+                    types::Value::Text("".to_string())
+                } else {
+                    default.clone()
+                }
+            }
+            _ => default.clone(),
+        };
         // if the default value is NULL, replace it with a default value of the corresponding type
         // to avoid unnecessary ambiguity
         let default = match default {
