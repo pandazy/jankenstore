@@ -1,2 +1,5 @@
 -   Removed redundant payload structs
 -   Updated outdated documentation
+-   Fixed the issue that empty text defaults are not fetched correctly from metadata
+    -   Depending on the context,rusqlite returns empty text as `''` or `""` from `pragma table_info`
+    -   The correction canonicalizes the empty text values
