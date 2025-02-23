@@ -86,6 +86,35 @@ fn test_create_with_input_map() -> Result<()> {
 }
 
 #[test]
+fn test_create_with_default_value() -> Result<()> {
+    let conn = Connection::open_in_memory()?;
+    initialize_db(&conn)?;
+
+    let schema_family = fetch_schema_family(&conn, &[], "", "")?;
+    let input = json!({
+        "id": 42,
+        "name": "test",
+        "artist_id": 24,
+        "file": [123,45,67]
+    });
+
+    let create_op: CreateOp = from_value(json!({"Create": ["song", input]}))?;
+    create_op.run(&conn, &schema_family)?;
+    let by_pk_input = json!({
+        "src": "song",
+        "keys": [42]
+    });
+    let read_op: ReadOp = from_value(json!({"ByPk": by_pk_input}))?;
+    let (records, _) = read_op.run(&conn, &schema_family, None)?;
+
+    assert_eq!(records.len(), 1);
+    assert_eq!(records[0]["memo"], json!(""));
+    assert_eq!(records[0]["memo2"], json!(""));
+
+    Ok(())
+}
+
+#[test]
 fn test_create_child() -> Result<()> {
     let conn = Connection::open_in_memory()?;
     initialize_db(&conn)?;

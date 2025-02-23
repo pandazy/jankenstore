@@ -43,9 +43,9 @@ pub fn create(
 /// * `conn` - A connection to the database
 /// * `schema_family` - The schema family of the database
 /// * `child_table` - The name of the table
-/// * `(parent_table, parent_val)` - Parent table information
-///                                  - `parent_table` - The name of the parent table
-///                                  - `parent_val` - The value of the parent record's primary key
+/// * `parent_info` - Parent table information
+///                    - each key is the name of the parent table
+///                    - each value is the value of the parent record's primary key whose new child record will be created
 /// * `input` - The new values to insert
 /// * `default_if_absent` - Whether to use the default value if a field is absent or empty
 pub fn create_child_of(

@@ -91,6 +91,7 @@ pub fn update_by_pk(
 /// * `parent_vals` - The specified parent records' primary key values
 /// * `input` - The new values to update (can be just part of the whole record)
 /// * `where_config_opt` - The condition to match the records to update
+/// * `default_if_absent` - Whether to use the default value if a field is absent or empty
 pub fn update_children_of(
     conn: &Connection,
     schema_family: &SchemaFamily,
