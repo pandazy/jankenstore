@@ -1,6 +1,6 @@
 [package]
 name = "jankenstore"
-version = "0.10.0"
+version = "0.10.1"
 edition = "2024"
 authors = ["Martin Zheng <jszhengyq@gmail.com>"]
 description = "Database operation helpers library"
@@ -12,7 +12,7 @@ categories = ["database"]
 
 [dependencies]
 anyhow = "1.0"
-rusqlite = "0.34"
+rusqlite = "0.35"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 

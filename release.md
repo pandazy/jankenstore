@@ -1,2 +1,1 @@
-- Upgrade Rust edition to 2024
 - Upgrade dependencies
