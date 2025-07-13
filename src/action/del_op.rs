@@ -16,8 +16,8 @@ pub enum DelOp {
     /// Delete records in a table by their primary keys
     /// # Arguments
     /// * `SrcAndKeys` - The primary key values of the records to delete from the specified table
-    ///                    - `src`: the table where the records will be deleted
-    ///                    - `keys`: the primary key values of the records to delete
+    ///   - `src`: the table where the records will be deleted
+    ///     - `keys`: the primary key values of the records to delete
     Delete(SrcAndKeys),
 
     ///

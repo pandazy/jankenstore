@@ -62,7 +62,7 @@ impl CreateOp {
     /// * `conn` - A connection to the database
     /// * `schema_family` - The schema family of the database
     /// * `map_input` - The function that modifies the input record
-    ///                - it receives the input record and returns the modified record
+    ///   - it receives the input record and returns the modified record
     pub fn run_map<T>(
         &self,
         conn: &Connection,

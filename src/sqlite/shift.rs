@@ -211,8 +211,7 @@ pub fn json_to_val_map(
         }
         let tp = type_map.get(key).unwrap_or(&types::Type::Null);
         let val = json_to_val(tp, json_val).context(format!(
-            "Failed to convert JSON value to '{}' for column '{}'. The input JSON value was: {}",
-            tp, key, json_val
+            "Failed to convert JSON value to '{tp}' for column '{key}'. The input JSON value was: {json_val}"
         ))?;
         map.insert(key.to_string(), val);
     }

@@ -128,11 +128,11 @@ pub fn read(
         None => String::new(),
     };
     let limit = match fetch_config.limit {
-        Some(limit) => format!(" LIMIT {}", limit),
+        Some(limit) => format!(" LIMIT {limit}"),
         None => String::new(),
     };
     let offset = match fetch_config.offset {
-        Some(offset) => format!(" OFFSET {}", offset),
+        Some(offset) => format!(" OFFSET {offset}"),
         None => String::new(),
     };
 
@@ -149,9 +149,9 @@ pub fn read(
         None => None,
     };
     let (where_q_clause, where_q_params) = sql::standardize_q_config(where_config, "WHERE");
-    let sql = format!("{} {}", sql, where_q_clause);
-    let sql_without_pagination = format!("{}{}{}", sql, group_by, order_by);
-    let sql_with_pagination = format!("{}{}{}{}{}", sql, group_by, order_by, limit, offset);
+    let sql = format!("{sql} {where_q_clause}");
+    let sql_without_pagination = format!("{sql}{group_by}{order_by}");
+    let sql_with_pagination = format!("{sql}{group_by}{order_by}{limit}{offset}");
     let mut stmt = conn.prepare(&sql_with_pagination)?;
     let mut rows = stmt.query(params_from_iter(&where_q_params))?;
     let mut result = Vec::new();
@@ -164,7 +164,7 @@ pub fn read(
         return Ok((result.clone(), *total as u64));
     }
 
-    let total_sql = format!("SELECT COUNT(*) FROM ({})", sql_without_pagination);
+    let total_sql = format!("SELECT COUNT(*) FROM ({sql_without_pagination})");
     let mut stmt = conn.prepare(&total_sql)?;
     let total = stmt.query_row(params_from_iter(&where_q_params), |row| row.get(0))?;
     Ok((result, total))
@@ -194,8 +194,7 @@ pub fn insert(
     let column_expression = columns.join(", ");
     let value_expression = values.join(", ");
     let sql = format!(
-        "INSERT INTO {} ({}) VALUES ({})",
-        table_name, column_expression, value_expression
+        "INSERT INTO {table_name} ({column_expression}) VALUES ({value_expression})"
     );
 
     conn.execute(&sql, params_from_iter(&params))?;
@@ -209,12 +208,12 @@ pub fn insert(
 /// * `conn` - the Rusqlite connection to the database
 /// * `table_name` - the name of the table
 /// * `where_config` - the where clause and the parameters for the where clause,
-///                      to reduce the chance of unwanted deletions,
-///                      this is not an Option and cannot contain empty clause
+///   to reduce the chance of unwanted deletions,
+///   this is not an Option and cannot contain empty clause
 /// # Returns
 pub fn del(conn: &Connection, table_name: &str, where_config: WhereConfig) -> anyhow::Result<()> {
     let (where_clause, where_params) = sql::standardize_q_config(Some(where_config), "WHERE");
-    let sql = format!("DELETE FROM {} {}", table_name, where_clause);
+    let sql = format!("DELETE FROM {table_name} {where_clause}");
     let mut stmt = conn.prepare(&sql)?;
     stmt.execute(params_from_iter(&where_params))?;
     Ok(())
@@ -228,8 +227,8 @@ pub fn del(conn: &Connection, table_name: &str, where_config: WhereConfig) -> an
 /// * `table_name` - the name of the table
 /// * `input` - the new values for the record
 /// * `where_config` - the where clause and the parameters for the where clause,
-///                      to reduce the chance of unwanted updates,
-///                      this is not an Option and cannot contain empty clause
+///   to reduce the chance of unwanted updates,
+///   this is not an Option and cannot contain empty clause
 pub fn update(
     conn: &Connection,
     table_name: &str,
@@ -239,7 +238,7 @@ pub fn update(
     let mut set_clause = vec![];
     let mut set_params = vec![];
     for (key, value) in input {
-        set_clause.push(format!("{} = ?", key));
+        set_clause.push(format!("{key} = ?"));
         set_params.push(value.clone());
     }
     let (where_clause, where_params) = sql::standardize_q_config(Some(where_config), "WHERE");
@@ -269,13 +268,13 @@ pub fn total(
     where_config: Option<(&str, &[types::Value])>,
 ) -> Result<i64> {
     let distinct_word = if let Some(field) = distinct_field {
-        format!("DISTINCT {}", field)
+        format!("DISTINCT {field}")
     } else {
         String::from("*")
     };
-    let sql = format!("SELECT COUNT({}) FROM {}", distinct_word, table_name);
+    let sql = format!("SELECT COUNT({distinct_word}) FROM {table_name}");
     let (where_q_clause, where_q_params) = sql::standardize_q_config(where_config, "WHERE");
-    let sql = format!("{} {}", sql, where_q_clause);
+    let sql = format!("{sql} {where_q_clause}");
     let mut stmt = conn.prepare(&sql)?;
     let mut rows = stmt.query(params_from_iter(&where_q_params))?;
     let count = rows

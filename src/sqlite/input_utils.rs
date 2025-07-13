@@ -13,10 +13,10 @@ use std::collections::HashMap;
 /// Configuration for verifying the input of certain write (e.g, create or update) operations
 /// # Fields
 /// * `default_if_absent` - whether to use the default value if the input is absent or empty
-/// * `must_have_every_col` - whether the input must have every column in the schema
-///                           For example:
-///                           - for a create operation, this should be true
-///                           - for an update operation, this should be false     
+/// * `must_have_every_col` - whether the input must have every column in the schema.
+///   For example:
+///   - for a create operation, this should be true
+///   - for an update operation, this should be false
 pub struct VerifyConf {
     pub default_if_absent: bool,
     pub must_have_every_col: bool,
