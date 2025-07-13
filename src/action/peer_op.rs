@@ -20,14 +20,14 @@ pub enum PeerOp {
     /// Link records into peer (n-to-n) relationships. See also [link]
     /// # Arguments
     /// * `HashMap<String, Vec<JsonValue>>` - The 2 types of peers and their primary key values to link
-    ///                                       - it should have EXACTLY 2 items
+    ///   - it should have EXACTLY 2 items
     Link(HashMap<String, Vec<JsonValue>>),
 
     ///
     /// Unlink records of peer (n-to-n) relationships. See also [unlink]
     /// # Arguments
     /// * `HashMap<String, Vec<JsonValue>>` - The 2 types of peers and their primary key values to unlink
-    ///                                       - it should have EXACTLY 2 items
+    ///   - it should have EXACTLY 2 items
     Unlink(HashMap<String, Vec<JsonValue>>),
 }
 

@@ -1,1 +1,2 @@
 - Upgrade dependencies
+- Updated format in favor of Rust 2024 edition

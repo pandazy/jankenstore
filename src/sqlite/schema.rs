@@ -36,11 +36,11 @@ fn get_type_from_str(t: &str) -> types::Type {
 /// # Fields
 /// * `name` - the name of the table
 /// * `pk` - the name of the primary key
-///          - currently only single primary key is supported
+///   - currently only single primary key is supported
 /// * `required_fields` - the names of the required fields (especially needed in write operations),
-///                       it includes 2 cases:
-///                       - the field is required (cannot be NULL)
-///                       - the field is pk (primary key)
+///   it includes 2 cases:
+///   - the field is required (cannot be NULL)
+///   - the field is pk (primary key)
 /// * `types` - the data types of the columns in the table
 /// * `defaults` - the default values for the columns in the table
 #[derive(Debug, Clone, PartialEq)]
@@ -98,17 +98,17 @@ impl Schema {
 /// # Fields
 /// * `map` - a map of table names to their corresponding schema
 /// * `parents` - a map of table names to their parents
-///                   - key: child table name
-///                   - value: parent table name(s) of the key table
+///   - key: child table name
+///   - value: parent table name(s) of the key table
 /// * `children` - a map of table names to their children
-///                   - key: parent table name
-///                   - value: child table name(s) of the key table
+///   - key: parent table name
+///   - value: child table name(s) of the key table
 /// * `peers` - a map of peer tables (n-n relationship)
-///                    - key: table name
-///                    - value: peer table name(s) of the key table
+///   - key: table name
+///   - value: peer table name(s) of the key table
 /// * `peer_link_tables` - a map of tables that saves the relationship between the peer tables
-///                      - key: peer table name
-///                      - value: the relationship table name
+///   - key: peer table name
+///   - value: the relationship table name
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct SchemaFamily {
     pub map: HashMap<String, Schema>,
@@ -377,9 +377,7 @@ const DEFAULT_PEER_SPLITTER: &str = "_";
 
 fn get_peer_table_name_tips(peer_prefix: &str, peer_splitter: &str) -> String {
     format!(
-        "If you do not expect this table to represent a peer relationship, please rename it to a different one, so it doesn't start with '{}{}'",
-        peer_prefix,
-        peer_splitter
+        "If you do not expect this table to represent a peer relationship, please rename it to a different one, so it doesn't start with '{peer_prefix}{peer_splitter}'"
     )
 }
 
@@ -414,7 +412,7 @@ fn get_peer_names(
 
     for p_name in [&peer_name_section[0], &peer_name_section[1]] {
         if let Some(pk_name) = pk_name_map.get(p_name) {
-            let fk_name = format!("{}_{}", p_name, pk_name);
+            let fk_name = format!("{p_name}_{pk_name}");
             if !columns.contains_key(fk_name.as_str()) {
                 return Err(anyhow::anyhow!(
                     "Table '{}' is missing the peer foreign-key column: '{}'\n{}",
@@ -465,7 +463,7 @@ fn extract_schema_metadata(conn: &Connection, excluded_tables: &[&str]) -> Resul
 /// * `conn` - the Rusqlite connection to the database
 /// * `excluded_tables` - the tables to be excluded from the schema family
 /// * `peer_prefix` - the prefix for sibling tables (default is [DEFAULT_PEER_PREFIX]),
-///                      sibling maps will be automatically generated based on this prefix
+///   sibling maps will be automatically generated based on this prefix
 /// * `peer_splitter` - the splitter for sibling tables from each relationship table (default is [DEFAULT_PEER_SPLITTER]
 pub fn fetch_schema_family(
     conn: &Connection,

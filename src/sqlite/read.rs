@@ -178,9 +178,7 @@ pub fn peers_of(
     let rel_table = schema_family.try_get_peer_link_table_of(source_table)?;
     verify_peers(
         schema_family,
-        &peer_config
-            .iter()
-            .map(|(t, _)| t.as_str())
+        &peer_config.keys().map(|t| t.as_str())
             .collect::<Vec<_>>(),
     )?;
     let mut fk_union_config = get_fk_union_config(schema_family, peer_config, where_config)?;

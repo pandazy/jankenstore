@@ -35,7 +35,7 @@ pub fn in_them_clause(col_name: &str, col_values: &[types::Value]) -> String {
         .map(|_| "?")
         .collect::<Vec<&str>>()
         .join(", ");
-    format!("{} IN ({})", col_name, pk_value_placeholders)
+    format!("{col_name} IN ({pk_value_placeholders})")
 }
 
 ///
@@ -73,7 +73,7 @@ pub fn standardize_q_config(q_config: Option<WhereConfig>, link_word: &str) -> W
                 if link_word.is_empty() {
                     clause.to_string()
                 } else {
-                    format!("{} {}", link_word, clause)
+                    format!("{link_word} {clause}")
                 },
                 params.to_vec(),
             )
@@ -108,7 +108,7 @@ pub fn merge_q_configs(
     let (clause1, params1) = standardize_q_config(q_config1, "");
     let (clause2, params2) = standardize_q_config(q_config2, link_word);
     (
-        format!("({} {})", clause1, clause2),
+        format!("({clause1} {clause2})"),
         [params1.to_vec(), params2].concat(),
     )
 }

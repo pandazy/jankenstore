@@ -109,9 +109,9 @@ impl ReadOp {
                 let sql_col_val = json_to_val(col_type, &json!(keyword))?;
                 let search_params = vec![sql_col_val];
                 let search_config = if exact {
-                    (format!("{} = ?", col), &search_params)
+                    (format!("{col} = ?"), &search_params)
                 } else {
-                    (format!("{} like '%'||?||'%'", col), &search_params)
+                    (format!("{col} like '%'||?||'%'"), &search_params)
                 };
                 let where_config = fetch_opt.and_then(|cfg| cfg.where_config);
                 let combined_config = merge_q_configs(

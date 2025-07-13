@@ -7,8 +7,8 @@ use super::{
     sql::merge_q_configs,
 };
 
-use anyhow::{anyhow, Result};
-use rusqlite::{types, Connection};
+use anyhow::{Result, anyhow};
+use rusqlite::{Connection, types};
 
 use std::collections::HashMap;
 
@@ -17,31 +17,30 @@ use std::collections::HashMap;
 /// # Arguments
 /// * `rel_name` - the name of the table that represents the n-n relationship
 /// * `fk_name` - the name of the foreign key column in the relationship table
-///               that links the main-source records to its peer, in the form of `<peer_table_name>_id`.
-///               If we want to display all users who have a specific role
-///               - the `fk_name` would be `role_id`.
-///               - the `source_name` would be `user`.
-///               - `rel_name`` can be `rel_user_role` or `rel_role_user`
+///   that links the main-source records to its peer, in the form of `<peer_table_name>_id`.
+///   If we want to display all users who have a specific role
+///   - the `fk_name` would be `role_id`.
+///   - the `source_name` would be `user`.
+///   - `rel_name`` can be `rel_user_role` or `rel_role_user`
 /// * `source_name` - the name of the table that represents the main-source record details to display
 /// * `source_pk` - the name of the primary key column in the source table
 /// * `bond_matching_clause` - the extra matching clause for the relationship table
-///                            apart from the foreign key connection to the source table.
-///                            If it's empty, it will be ignored
+///   apart from the foreign key connection to the source table.
+///   If it's empty, it will be ignored
 pub fn peer_matching_clause(
     rel_name: &str,
     fk_name: &str,
     (source_name, source_pk): (&str, &str),
     bond_matching_clause: &str,
 ) -> String {
-    let link_condition = format!("{} = {}.{}", fk_name, source_name, source_pk);
+    let link_condition = format!("{fk_name} = {source_name}.{source_pk}");
     let bond_matching_clause = if bond_matching_clause.is_empty() {
         bond_matching_clause.to_string()
     } else {
-        format!("AND {}", bond_matching_clause)
+        format!("AND {bond_matching_clause}")
     };
     format!(
-        "EXISTS (SELECT 1 FROM {} WHERE {} {})",
-        rel_name, link_condition, bond_matching_clause
+        "EXISTS (SELECT 1 FROM {rel_name} WHERE {link_condition} {bond_matching_clause})"
     )
 }
 
@@ -51,8 +50,8 @@ pub fn peer_matching_clause(
 /// * `conn` - the Rusqlite connection to the database
 /// * `rel_name` - the name of the table that represents the n-n relationship
 /// * `inputs` - the table matching settings of the A side and the B side of the relationship
-///              - `tuple(source_a_fk_col_name, source_a_pk_value)`
-///              - `tuple(source_b_fk_col_name, source_b_pk_value)`
+///   - `tuple(source_a_fk_col_name, source_a_pk_value)`
+///   - `tuple(source_b_fk_col_name, source_b_pk_value)`
 /// * `where_config` - the where clause and the parameters for the where clause,
 fn nn_link_exists(
     conn: &Connection,
@@ -65,7 +64,7 @@ fn nn_link_exists(
     let (b_col, b_val) = b_config;
     let (where_clause, where_params) = merge_q_configs(
         Some((
-            format!("{} = ? AND {} = ?", a_col, b_col).as_str(),
+            format!("{a_col} = ? AND {b_col} = ?").as_str(),
             &[a_val.clone(), b_val.clone()],
         )),
         where_config,
@@ -88,7 +87,7 @@ fn nn_link_exists(
 /// * `conn` - the Rusqlite connection to the database
 /// * `rel_name` - the name of the table that represents the n-n relationship
 /// * `a_config` - the table matching settings of the A side of the relationship
-///               - `tuple(source_a_table_name, source_a_pk_value_list)`
+///   - `tuple(source_a_table_name, source_a_pk_value_list)`
 /// * `b_config` - the table matching settings of the B side of the relationship, similar to `a_config`
 fn nn(
     conn: &Connection,
@@ -131,7 +130,7 @@ fn nn(
 /// * `conn` - the Rusqlite connection to the database
 /// * `rel_name` - the name of the table that represents the n-n relationship
 /// * `a_config` - the table matching settings of the A side of the relationship
-///                - `tuple(source_a_table_name, source_a_pk_value_list)`
+///   - `tuple(source_a_table_name, source_a_pk_value_list)`
 /// * `b_config` - the table matching settings of the B side of the relationship, similar to `a_config`
 ///
 fn d_all(
@@ -154,7 +153,7 @@ fn d_all(
                 conn,
                 rel_name,
                 (
-                    format!("{} = ? AND {} = ?", a_col, b_col).as_str(),
+                    format!("{a_col} = ? AND {b_col} = ?").as_str(),
                     &[a_val.clone(), b_val.clone()],
                 ),
             )?;
@@ -194,14 +193,13 @@ fn get_2_configs(inputs: &HashMap<String, Vec<types::Value>>) -> Result<PeerConf
 /// * `conn` - the Rusqlite connection to the database
 /// * `schema_family` - the schema family containing the schema for the table, used for validation. See [SchemaFamily]
 /// * `inputs` - the table matching settings of the A side and the B side of the relationship
-///              it can only have 2 keys, the key is the table name, the value is the list of primary key values of peer records in the table
-///              for example:
-///              ```json
+///   it can only have 2 keys, the key is the table name, the value is the list of primary key values of peer records in the table
+///   for example:
+///   ```json
 ///              {
 ///                  "show": ["1232", "7889"],
 ///                  "song": ["19191", "65655"]
 ///              }
-///              ```
 pub fn link(
     conn: &Connection,
     schema_family: &SchemaFamily,
@@ -231,13 +229,13 @@ pub fn link(
 /// * `conn` - the Rusqlite connection to the database
 /// * `schema_family` - the schema family containing the schema for the table, used for validation. See [SchemaFamily]
 /// * `inputs` - the table matching settings of the A side and the B side of the relationship, similar to [link]
-///              it can only have 2 keys, the key is the table name, the value is the list of primary key values of peer records in the table
-///              for example:
-///              ```json
-///              {
-///                  "show": ["1232", "7889"],
-///                  "song": ["19191", "65655"]
-///              }
+///   it can only have 2 keys, the key is the table name, the value is the list of primary key values of peer records in the table
+///   for example:
+///   ```json
+///   {
+///   "show": ["1232", "7889"],
+///   "song": ["19191", "65655"]
+///   }
 pub fn unlink(
     conn: &Connection,
     schema_family: &SchemaFamily,
