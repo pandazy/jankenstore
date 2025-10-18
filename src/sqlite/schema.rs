@@ -198,8 +198,7 @@ impl SchemaFamily {
             .get(table_name)
             .map(|s| s.as_str())
             .ok_or(anyhow::anyhow!(
-                "Table '{}' does not have peers defined",
-                table_name
+                "Table '{table_name}' does not have peers defined"
             ))
     }
 
@@ -210,11 +209,7 @@ impl SchemaFamily {
         let peers1 = self.peers.get(peer1_name).unwrap_or(&default_peers);
         if !peers1.contains(peer2_name) {
             return Err(anyhow::anyhow!(
-                "Table '{}' is not a peer of '{}'. \nAvailable peer tables of '{}' are {:?}",
-                peer1_name,
-                peer2_name,
-                peer1_name,
-                peers1
+                "Table '{peer1_name}' is not a peer of '{peer2_name}'. \nAvailable peer tables of '{peer1_name}' are {peers1:?}"
             ));
         }
         Ok(())
@@ -333,10 +328,7 @@ pub fn get_columns_meta(
         // NULL type leads to definition gap which needs further investigation
         if col_type == types::Type::Null {
             return Err(anyhow::anyhow!(
-                "Invalid type: '{}' for the column '{}@{}'",
-                col_type,
-                name,
-                table
+                "Invalid type: '{col_type}' for the column '{name}@{table}'"
             ));
         }
         let is_required: bool = row.get(3)?;
@@ -568,11 +560,7 @@ pub fn fetch_schema_family(
     for (parent_name, child_name, context_column) in parent_candidates {
         if !map.contains_key(&parent_name) {
             return Err(anyhow::anyhow!(
-                "Table '{}' which is parent of '{}' does not exist, but it's specified by '{}@{}'",
-                parent_name,
-                child_name,
-                child_name,
-                context_column
+                "Table '{parent_name}' which is parent of '{child_name}' does not exist, but it's specified by '{child_name}@{context_column}'"
             ));
         }
         let current_parents = parents

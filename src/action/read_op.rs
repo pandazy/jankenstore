@@ -99,9 +99,7 @@ impl ReadOp {
                 let col_type = schema.types.get(col).unwrap_or(&types::Type::Null);
                 if !col_type.eq(&types::Type::Text) {
                     return Err(anyhow!(
-                        "The column '{}'@'{}' is not a text column, but it's specified as a search keyword",
-                        col,
-                        table
+                        "The column '{col}'@'{table}' is not a text column, but it's specified as a search keyword"
                     ));
                 }
                 let exact = exact.unwrap_or(false);

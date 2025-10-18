@@ -139,8 +139,7 @@ pub fn read(
     for clause in [group_by.as_str(), order_by.as_str()] {
         if contains_illegal_by_chars(clause) {
             return Err(anyhow::anyhow!(
-                "Illegal characters in the clause: {}",
-                clause
+                "Illegal characters in the clause: {clause}"
             ));
         }
     }
@@ -279,7 +278,7 @@ pub fn total(
     let mut rows = stmt.query(params_from_iter(&where_q_params))?;
     let count = rows
         .next()?
-        .ok_or(anyhow::anyhow!("No rows returned from query: {}", sql))?
+        .ok_or(anyhow::anyhow!("No rows returned from query: {sql}"))?
         .get(0)?;
     Ok(count)
 }

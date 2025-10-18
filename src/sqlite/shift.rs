@@ -120,9 +120,7 @@ fn json_to_i64(json: &serde_json::Value) -> Result<i64> {
 
         as_str.parse::<i64>().map_err(|e| {
             anyhow!(
-                "Failed to parse JSON value into integer, JSON value: {}, error: {}",
-                json.to_string(),
-                e
+                "Failed to parse JSON value into integer, JSON value: {json}, error: {e}"
             )
         })?
     };
@@ -137,9 +135,7 @@ fn json_to_f64(json: &serde_json::Value) -> Result<f64> {
         let as_str = json.as_str().unwrap_or_default();
         as_str.parse::<f64>().map_err(|e| {
             anyhow!(
-                "Failed to parse JSON value into float, JSON value: {}, error: {}",
-                json.to_string(),
-                e
+                "Failed to parse JSON value into float, JSON value: {json}, error: {e}"
             )
         })?
     };
@@ -160,9 +156,7 @@ pub fn json_to_str(json: &serde_json::Value) -> String {
 pub fn json_to_val(the_type: &types::Type, json: &serde_json::Value) -> Result<types::Value> {
     let throw = || {
         anyhow!(
-            "Column requires {}, but saw invalid value {}",
-            the_type,
-            json,
+            "Column requires {the_type}, but saw invalid value {json}",
         )
     };
     let val = match the_type {
